@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth - Product System</title>
+    <link rel="stylesheet" href="Login.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LEFT SIDE -->
+    <div class="left">
+        <h1>Welcome Back 👋</h1>
+        <p>Manage your products efficiently</p>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="right">
+
+        <!-- TOGGLE BUTTONS -->
+        <div class="toggle">
+            <button id="loginTab" class="active">Login</button>
+            <button id="signupTab">Signup</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" class="form active">
+            <h2>Login</h2>
+
+            <div class="input-group">
+                <input type="email" id="loginEmail" placeholder="Enter Email" required>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="loginPassword" placeholder="Enter Password" required>
+            </div>
+
+            <button type="submit">Login</button>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="form">
+            <h2>Create Account</h2>
+
+            <div class="input-group">
+                <input type="text" id="signupName" placeholder="Full Name" required>
+            </div>
+
+            <div class="input-group">
+                <input type="email" id="signupEmail" placeholder="Email" required>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="signupPassword" placeholder="Password" required>
+            </div>
+
+            <button type="submit">Signup</button>
+        </form>
+
+    </div>
+
+</div>
+
+<!-- JS -->
+<script src="Login.js"></script>
+
+</body>
+</html>

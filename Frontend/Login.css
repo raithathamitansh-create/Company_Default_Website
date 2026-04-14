@@ -1,0 +1,176 @@
+/* ======================
+   GLOBAL
+====================== */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+    background: linear-gradient(135deg, rgb(151, 209, 243));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ======================
+   CONTAINER
+====================== */
+.container {
+    width: 800px;
+    height: 450px;
+    display: flex;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    background: white;
+}
+
+/* ======================
+   LEFT SIDE
+====================== */
+.left {
+    flex: 1;
+    background: linear-gradient(135deg, #0056b3, #0099ff);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.left h1 {
+    font-size: 28px;
+}
+
+.left p {
+    opacity: 0.8;
+}
+
+/* ======================
+   RIGHT SIDE
+====================== */
+.right {
+    flex: 1;
+    padding: 40px;
+    position: relative;
+}
+
+/* ======================
+   TOGGLE
+====================== */
+.toggle {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.toggle button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: #eee;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.toggle .active {
+    background: #007BFF;
+    color: white;
+}
+
+/* ======================
+   FORM
+====================== */
+.form {
+    display: none;
+    flex-direction: column;
+}
+
+.form.active {
+    display: flex;
+}
+
+.form h2 {
+    margin-bottom: 20px;
+}
+
+.form input {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.form input:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+/* ======================
+   BUTTON
+====================== */
+.form button {
+    padding: 10px;
+    border: none;
+    background: #007BFF;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.2s;
+}
+
+.form button:hover {
+    background: #0056b3;
+}
+
+.logout-btn {
+    position: absolute;
+    top: 20px;
+    right: 100px;
+
+    padding: 8px 15px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.logout-btn:hover {
+    background: #a71d2a;
+}
+
+/* ======================
+   INPUT GROUP
+====================== */
+.input-group {
+    width: 100%;
+}
+
+/* ======================
+   INPUT FIELDS
+====================== */
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    box-sizing: border-box; /* VERY IMPORTANT */
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* ======================
+   FORM WIDTH FIX
+====================== */
+.form {
+    width: 100%;
+}
+
+/* ======================
+   RIGHT PANEL FIX
+====================== */
+.right {
+    width: 100%;
+    padding: 30px;
+    box-sizing: border-box;
+}

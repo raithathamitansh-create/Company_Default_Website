@@ -1,0 +1,196 @@
+/* ======================
+   GLOBAL
+====================== */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    margin: 0;
+    background-color: #e6f4ff; /* light sky blue */
+}
+
+/* ======================
+   LEFT PANEL
+====================== */
+.sidebar {
+    width: 300px;
+    background: #f2f2f2;
+    padding: 20px;
+    border-right: 2px solid #ddd;
+}
+
+.sidebar h3 {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    position: relative;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+/* ======================
+   BUTTON
+====================== */
+button {
+    width: 100%;
+    padding: 10px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+/* ======================
+   MAIN SECTION
+====================== */
+.main {
+    flex: 1;
+    padding: 20px;
+    padding-right: 380px; /* space for preview */
+    position: relative;
+}
+
+/* ======================
+   IMAGE PREVIEW
+====================== */
+.preview-box {
+    position: absolute;
+    right: 40px;
+    top: 120px;
+    width: 350px;
+    height: 350px;
+    border: 1px solid #ccc;
+    background: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* ======================
+   TABLE
+====================== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+/* HEADER */
+thead th {
+    background: #007BFF;
+    color: white;
+    font-weight: bold;
+}
+
+/* CELLS */
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+/* ======================
+   AUTOCOMPLETE
+====================== */
+.autocomplete-list {
+    border: 1px solid #ccc;
+    max-height: 120px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+}
+
+.autocomplete-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.autocomplete-item:hover {
+    background: #eee;
+}
+
+.autocomplete-active {
+    background-color: #007BFF;
+    color: white;
+}
+
+/* ======================
+   DELETE BUTTON (FIXED)
+====================== */
+.delete-btn {
+    cursor: pointer;
+    font-size: 16px;
+    color: red;
+    display: none;
+}
+
+/* Show only when row is hovered */
+tr:hover .delete-btn {
+    display: inline;
+}
+
+/* ======================
+   PLUS ICON
+====================== */
+.add-icon {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+
+    width: 35px;
+    height: 35px;
+    background: #007BFF;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: 0.2s;
+}
+
+.add-icon:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
+/* LOGOUT BUTTON */
+.logout-btn {
+    padding: 6px 14px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+
+    width: auto;           /* IMPORTANT */
+    display: inline-block; /* IMPORTANT */
+    margin-bottom: 10px;
+}
+
+.logout-btn:hover {
+    background: #0056b3;
+}
