@@ -88,53 +88,9 @@ app.post("/signup", (req, res) => {
 // ======================
 // LOGIN
 // ======================
-app.post("/login", (req, res) => {
-    const { email, password } = req.body;
+const authRoutes = require("./routes/authRoutes");
 
-    db.query(
-        "SELECT * FROM users WHERE email = ?",
-        [email],
-        (err, result) => {
-
-            if (err) {
-                console.error("DB ERROR:", err);
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (result.length === 0) {
-                return res.status(400).json({ message: "User not found" });
-            }
-
-            const user = result[0];
-
-            bcrypt.compare(password, user.password, (err, isMatch) => {
-
-                if (err) {
-                    console.error("BCRYPT ERROR:", err);
-                    return res.status(500).json({ error: err.message });
-                }
-
-                if (!isMatch) {
-                    return res.status(400).json({ message: "Invalid password" });
-                }
-
-                const token = jwt.sign(
-                    { id: user.id, email: user.email },
-                    SECRET_KEY,
-                    { expiresIn: "1h" }
-                );
-
-                // Send email (non-blocking)
-                sendLoginEmail(user.email, user.name)
-                .catch(err => console.error("Email error:", err));
-
-                 // Send response
-                 res.json({ token });
-            });
-        }
-    );
-});
-
+app.use("/", authRoutes);
 
 // ======================
 // PRODUCTS
