@@ -4,7 +4,7 @@ const db = require("../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { generateOTP, hashOTP } = require("../utils/otp");
-const sendOTPEmail = require("../utils/sendLoginEmail");
+const { sendOTPEmail }= require("../utils/sendLoginEmail");
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
