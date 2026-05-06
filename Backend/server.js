@@ -53,17 +53,22 @@ app.post("/signup", async (req, res) => {
                 return res.status(400).json({ message: "Email already exists" });
             }
 
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10,(err,hachedPassword) => {
+                if(err){
+                    return res.status(500).json({message: "Hashing failed"});
+                }
+            });
 
             // Insert user
             db.query(
                 "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
                 [name, email, hashedPassword],
                 (err) => {
-                    if (err) return res.status(500).json({ message: "Signup failed" });
-
-                    
-
+                    if (err) {
+                         console.error("INSERT ERROR:", err);
+                         return res.status(500).json({ message: "Signup failed" });
+                    }
+                        
                     res.json({ message: "User registered successfully" });
                 }
             );
@@ -84,8 +89,12 @@ app.post("/login", (req, res) => {
     db.query(
         "SELECT * FROM users WHERE email = ?",
         [email],
-        async (err, result) => {
-            if (err) return res.status(500).json({ message: "Server error" });
+        (err, result) => {
+
+            if (err) {
+                console.error("DB ERROR:", err);
+                return res.status(500).json({ error: err.message });
+            }
 
             if (result.length === 0) {
                 return res.status(400).json({ message: "User not found" });
@@ -93,19 +102,25 @@ app.post("/login", (req, res) => {
 
             const user = result[0];
 
-            const isMatch = await bcrypt.compare(password, user.password);
+            bcrypt.compare(password, user.password, (err, isMatch) => {
 
-            if (!isMatch) {
-                return res.status(400).json({ message: "Invalid password" });
-            }
+                if (err) {
+                    console.error("BCRYPT ERROR:", err);
+                    return res.status(500).json({ error: err.message });
+                }
 
-            const token = jwt.sign(
-                { id: user.id, email: user.email },
-                SECRET_KEY,
-                { expiresIn: "1h" }
-            );
+                if (!isMatch) {
+                    return res.status(400).json({ message: "Invalid password" });
+                }
 
-            res.json({ token });
+                const token = jwt.sign(
+                    { id: user.id, email: user.email },
+                    SECRET_KEY,
+                    { expiresIn: "1h" }
+                );
+
+                res.json({ token });
+            });
         }
     );
 });
