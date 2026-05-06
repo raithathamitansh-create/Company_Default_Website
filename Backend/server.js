@@ -172,6 +172,17 @@ app.get("/", (req, res) => {
     res.send("Backend running 🚀");
 });
 
+// DEBUG DB
+app.get("/debug-db", (req, res) => {
+    db.query("SHOW TABLES", (err, result) => {
+        if (err) {
+            console.log("DB ERROR:", err);
+            return res.status(500).json(err);
+        }
+        res.json(result);
+    });
+});
+
 app.listen(process.env.PORT || 5000, () => {
     console.log("Server running 🚀");
 });
