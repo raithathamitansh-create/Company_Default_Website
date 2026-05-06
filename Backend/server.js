@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("./middleware/auth");
 const validateEntry = require("./middleware/validateEntry");
-const sendLoginEmail = require("./utils/sendLoginEmail");
+const { sendLoginEmail } = require("./utils/sendLoginEmail");
 require("dotenv").config();
 
 const app = express();
