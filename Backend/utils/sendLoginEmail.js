@@ -1,19 +1,7 @@
-const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
+const { Resend } = require("resend");
 
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ======================
 // LOGIN SUCCESS EMAIL
@@ -24,48 +12,34 @@ async function sendLoginEmail(userEmail, userName) {
         timeZone: "Asia/Kolkata"
     });
 
-    await transporter.sendMail({
-        from: `"Product System" <${process.env.EMAIL_USER}>`,
-        to: userEmail,
-        subject: "Successful Login - Product System",
+    try {
 
-        html: `
-            <h2>Login Successful</h2>
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: userEmail,
+            subject: "Successful Login - Product System",
 
-            <p>Hello ${userName || "User"},</p>
+            html: `
+                <h2>Login Successful</h2>
 
-            <p>Your account was successfully logged in.</p>
+                <p>Hello ${userName || "User"},</p>
 
-            <p><strong>Login time:</strong> ${loginTime}</p>
+                <p>Your account was successfully logged in.</p>
 
-            <p>If this was not you, please change your password immediately.</p>
-        `
-    });
-}
+                <p><strong>Login time:</strong> ${loginTime}</p>
 
-// ======================
-// OTP EMAIL
-// ======================
-async function sendOTPEmail(userEmail, otp) {
+                <p>If this was not you, please change your password immediately.</p>
+            `
+        });
 
-    await transporter.sendMail({
-        from: `"Product System" <${process.env.EMAIL_USER}>`,
-        to: userEmail,
-        subject: "Your OTP Code",
+        console.log("Login email sent");
 
-        html: `
-            <h2>OTP Verification</h2>
+    } catch (error) {
 
-            <p>Your OTP is:</p>
-
-            <h1>${otp}</h1>
-
-            <p>This OTP expires in 5 minutes.</p>
-        `
-    });
+        console.log("Email error:", error);
+    }
 }
 
 module.exports = {
-    sendLoginEmail,
-    sendOTPEmail
+    sendLoginEmail
 };
