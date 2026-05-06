@@ -65,8 +65,9 @@ router.post("/login", (req, res) => {
               .catch(err => console.error("Email error:", err));
 
             res.json({
-              message: "OTP sent to your email",
-              userId: user.id
+                 success : true,
+                 message : "OTP sent to your email",
+                 userId: user.id
             });
           }
         );
@@ -78,56 +79,86 @@ router.post("/login", (req, res) => {
 // ======================
 // STEP 2: VERIFY OTP → ISSUE TOKEN
 // ======================
+
 router.post("/verify-otp", (req, res) => {
-  const { userId, otp } = req.body;
 
-  if (!userId || !otp) {
-    return res.status(400).json({ message: "OTP and userId required" });
-  }
+    const { userId, otp } = req.body;
 
-  const hashedOtp = hashOTP(otp);
-
-  db.query(
-    "SELECT * FROM otp_codes WHERE user_id = ?",
-    [userId],
-    (err, result) => {
-      if (err) {
-        console.error("DB ERROR:", err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      if (result.length === 0) {
-        return res.status(400).json({ message: "OTP not found" });
-      }
-
-      const record = result[0];
-
-      // Check expiry
-      if (new Date() > record.expires_at) {
-        return res.status(400).json({ message: "OTP expired" });
-      }
-
-      // Check match
-      if (record.otp !== hashedOtp) {
-        return res.status(400).json({ message: "Invalid OTP" });
-      }
-
-      // Generate JWT
-      const token = jwt.sign(
-        { id: userId },
-        SECRET_KEY,
-        { expiresIn: "1h" }
-      );
-
-      // Delete OTP after success
-      db.query("DELETE FROM otp_codes WHERE user_id = ?", [userId]);
-
-      res.json({
-        message: "Login successful",
-        token
-      });
+    if (!userId || !otp) {
+        return res.status(400).json({
+            message: "OTP and User ID required"
+        });
     }
-  );
+
+     const hashedOtp = hashOTP(otp);
+     
+    db.query(
+        "SELECT * FROM otp_codes WHERE user_id = ? AND otp = ?",
+        [userId, hashedOtp],
+        (err, result) => {
+
+            if (err) {
+                return res.status(500).json({
+                    message: "Server error"
+                });
+            }
+
+            if (result.length === 0) {
+                return res.status(400).json({
+                    message: "Invalid OTP"
+                });
+            }
+
+            const otpData = result[0];
+
+            // Check expiry
+            if (new Date() > new Date(otpData.expires_at)) {
+
+                return res.status(400).json({
+                    message: "OTP expired"
+                });
+            }
+
+            // Get user
+            db.query(
+                "SELECT * FROM users WHERE id = ?",
+                [userId],
+                (err, userResult) => {
+
+                    if (err || userResult.length === 0) {
+                        return res.status(500).json({
+                            message: "User not found"
+                        });
+                    }
+
+                    const user = userResult[0];
+
+                    // Generate JWT token
+                    const token = jwt.sign(
+                        {
+                            id: user.id,
+                            email: user.email
+                        },
+                        process.env.JWT_SECRET,
+                        {
+                            expiresIn: "1h"
+                        }
+                    );
+
+                    // Delete OTP after verification
+                    db.query(
+                        "DELETE FROM otp_codes WHERE user_id = ?",
+                        [userId]
+                    );
+
+                    res.json({
+                        success: true,
+                        token
+                    });
+                }
+            );
+        }
+    );
 });
 
 module.exports = router;

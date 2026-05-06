@@ -105,19 +105,55 @@ loginForm.addEventListener("submit", async (e) => {
 
         console.log("Login response:", data);
 
-        if (res.ok && data.token) {
-            localStorage.setItem("token", data.token);
+       if (res.ok && data.success) {
 
-            alert("Login successful ✅");
+    alert(data.message);
 
-            // Redirect to dashboard
-            window.location.href = "index.html";
-        } else {
-            alert(data.message || "Login failed ❌");
-        }
+    // Ask OTP from user
+    const otp = prompt("Enter OTP sent to your email");
 
-    } catch (error) {
+    if (!otp) {
+        alert("OTP is required ❌");
+        return;
+    }
+
+    // Verify OTP
+    const verifyRes = await fetch(`${BASE_URL}/verify-otp`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            userId: data.userId,
+            otp: otp
+        })
+    });
+
+    const verifyData = await verifyRes.json();
+
+    console.log("OTP Verify Response:", verifyData);
+
+    if (verifyRes.ok && verifyData.success) {
+
+        localStorage.setItem("token", verifyData.token);
+
+        alert("Login successful ✅");
+
+        // Redirect to dashboard
+        window.location.href = "index.html";
+
+    } else {
+
+        alert(verifyData.message || "Invalid OTP ❌");
+    }
+
+    } else {
+
+    alert(data.message || "Login failed ❌");
+    }
+    
+     } catch (error) {
         console.error("❌ Login error:", error);
         alert("Login failed ❌");
-    }
+     }
 });
