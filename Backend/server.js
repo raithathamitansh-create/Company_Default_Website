@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("./middleware/auth");
 const validateEntry = require("./middleware/validateEntry");
+const sendLoginEmail = require("./utils/sendLoginEmail");
 require("dotenv").config();
 
 const app = express();
@@ -123,7 +124,12 @@ app.post("/login", (req, res) => {
                     { expiresIn: "1h" }
                 );
 
-                res.json({ token });
+                // Send email (non-blocking)
+                sendLoginEmail(user.email, user.name)
+                .catch(err => console.error("Email error:", err));
+
+                 // Send response
+                 res.json({ token });
             });
         }
     );
