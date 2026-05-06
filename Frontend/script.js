@@ -11,7 +11,7 @@ const state = {
 // ================= BASE =================
 const BASE_URL = window.location.hostname === "localhost"
     ? "http://localhost:5000"
-    : "https://full-stack-projects-5mf5.onrender.com";
+    : "https://company-default-website.onrender.com";
 
 // ================= AUTH =================
 const token = localStorage.getItem("token");

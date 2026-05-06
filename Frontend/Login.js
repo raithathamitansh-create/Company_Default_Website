@@ -1,4 +1,4 @@
-const BASE_URL = "https://full-stack-projects-5mf5.onrender.com";
+const BASE_URL = "https://company-default-website.onrender.com";
 
 console.log("🚀 Auth script loaded");
 
