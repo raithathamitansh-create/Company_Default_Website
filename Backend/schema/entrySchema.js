@@ -9,7 +9,7 @@ const entrySchema = {
         quantity: {
             type: "integer",
             minimum: 1,
-            maximum: 20
+            maximum: 50
         },
         price: {
             type: "number",

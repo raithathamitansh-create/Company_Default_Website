@@ -85,8 +85,8 @@ function validateInputs() {
         return false;
     }
 
-    if (state.quantity > 20) {
-        alert("Quantity cannot exceed 20 ❌");
+    if (state.quantity > 50) {
+        alert("Quantity cannot exceed 50 ❌");
         quantityInput.focus();
         return false;
     }
