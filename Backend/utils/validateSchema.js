@@ -20,8 +20,8 @@ function validateEntrySchema(data) {
         errors.push("Quantity must be an integer");
     }
 
-    if (quantity < 1 || quantity > 20) {
-        errors.push("Quantity must be between 1 and 20");
+    if (quantity < 1 || quantity > 50) {
+        errors.push("Quantity must be between 1 and 50");
     }
 
     // PRICE
