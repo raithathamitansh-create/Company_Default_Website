@@ -212,6 +212,40 @@ tr:hover .delete-btn {
     font-size: 14px;
 }
 
+.sort-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 8px;
+    max-width: 760px;
+}
+
+.sort-btn {
+    width: auto;
+    min-width: 150px;
+    border-radius: 6px;
+    padding: 9px 12px;
+    background: #2f6f73;
+    font-size: 14px;
+}
+
+.sort-btn:hover {
+    background: #24575a;
+}
+
+.sort-btn.active-sort {
+    background: #0b5ed7;
+    box-shadow: 0 0 0 2px rgba(11, 94, 215, 0.2);
+}
+
+.clear-sort-btn {
+    background: #8d5a20;
+}
+
+.clear-sort-btn:hover {
+    background: #704718;
+}
+
 .whatsapp-btn {
     background: #25D366;
 }
@@ -252,6 +286,14 @@ tr:hover .delete-btn {
     font-weight: bold;
 }
 
+.table-summary {
+    min-height: 20px;
+    margin: 0 0 8px;
+    color: #30343f;
+    font-size: 14px;
+    font-weight: bold;
+}
+
 @media (max-width: 900px) {
     body {
         display: block;
@@ -273,7 +315,8 @@ tr:hover .delete-btn {
 }
 
 @media (max-width: 520px) {
-    .action-btn {
+    .action-btn,
+    .sort-btn {
         flex: 1 1 calc(50% - 8px);
         min-width: 0;
     }

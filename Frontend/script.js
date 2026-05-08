@@ -1,5 +1,9 @@
 let allData = [];
 let visibleData = [];
+let sortState = {
+    key: "",
+    direction: "asc"
+};
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -40,6 +44,11 @@ const mailBtn = document.getElementById("mailBtn");
 const driveBtn = document.getElementById("driveBtn");
 const copyBtn = document.getElementById("copyBtn");
 const shareStatus = document.getElementById("shareStatus");
+const sortProductBtn = document.getElementById("sortProductBtn");
+const sortQuantityBtn = document.getElementById("sortQuantityBtn");
+const sortPriceBtn = document.getElementById("sortPriceBtn");
+const clearSortBtn = document.getElementById("clearSortBtn");
+const tableSummary = document.getElementById("tableSummary");
 
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", () => {
@@ -118,11 +127,84 @@ async function loadData() {
         const data = await res.json();
         allData = data; // ⭐ store data
 
-        renderTable(data);
+        applyTableView();
 
     } catch (error) {
         console.log("Load Error:", error);
     }
+}
+
+function getCurrentSearchTerm() {
+    return searchInput.value.trim();
+}
+
+function applyTableView() {
+    renderTable(allData, getCurrentSearchTerm());
+}
+
+function getSortedData(data) {
+    if (!sortState.key) return [...data];
+
+    const sortedData = [...data].sort((firstItem, secondItem) => {
+        if (sortState.key === "product") {
+            return String(firstItem.product).localeCompare(
+                String(secondItem.product),
+                undefined,
+                { sensitivity: "base" }
+            );
+        }
+
+        return Number(firstItem[sortState.key]) - Number(secondItem[sortState.key]);
+    });
+
+    return sortState.direction === "desc" ? sortedData.reverse() : sortedData;
+}
+
+function setSort(key) {
+    if (sortState.key === key) {
+        sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+        sortState.key = key;
+        sortState.direction = "asc";
+    }
+
+    applyTableView();
+}
+
+function clearSort() {
+    sortState.key = "";
+    sortState.direction = "asc";
+    applyTableView();
+}
+
+function getSortLabel(key, ascendingText, descendingText) {
+    if (sortState.key !== key) return ascendingText;
+
+    return sortState.direction === "asc" ? descendingText : ascendingText;
+}
+
+function updateSortButtons() {
+    sortProductBtn.textContent = getSortLabel("product", "Sort Product A-Z", "Sort Product Z-A");
+    sortQuantityBtn.textContent = getSortLabel("quantity", "Sort Quantity Low-High", "Sort Quantity High-Low");
+    sortPriceBtn.textContent = getSortLabel("price", "Sort Price Low-High", "Sort Price High-Low");
+
+    [sortProductBtn, sortQuantityBtn, sortPriceBtn].forEach(button => {
+        button.classList.remove("active-sort");
+    });
+
+    if (sortState.key === "product") sortProductBtn.classList.add("active-sort");
+    if (sortState.key === "quantity") sortQuantityBtn.classList.add("active-sort");
+    if (sortState.key === "price") sortPriceBtn.classList.add("active-sort");
+}
+
+function updateTableSummary() {
+    const rowCount = visibleData.length;
+    const totalQuantity = visibleData.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalAmount = visibleData.reduce((sum, item) => sum + Number(item.total || 0), 0);
+
+    tableSummary.textContent = rowCount
+        ? `${rowCount} rows | Quantity: ${totalQuantity} | Total: ${totalAmount}`
+        : "No rows to show";
 }
 
 function renderTable(data, searchTerm = "") {
@@ -136,7 +218,10 @@ function renderTable(data, searchTerm = "") {
         );
     }
 
+    filteredData = getSortedData(filteredData);
     visibleData = filteredData;
+    updateSortButtons();
+    updateTableSummary();
 
     // ❌ No results case
     if (searchTerm && filteredData.length === 0) {
@@ -174,15 +259,17 @@ function renderTable(data, searchTerm = "") {
 }
 
 searchBtn.addEventListener("click", () => {
-    const searchTerm = searchInput.value.trim();
-
-    renderTable(allData, searchTerm);
+    applyTableView();
 });
 
 searchInput.addEventListener("input", () => {
-    const term = searchInput.value.trim();
-    renderTable(allData, term);
+    applyTableView();
 });
+
+sortProductBtn.addEventListener("click", () => setSort("product"));
+sortQuantityBtn.addEventListener("click", () => setSort("quantity"));
+sortPriceBtn.addEventListener("click", () => setSort("price"));
+clearSortBtn.addEventListener("click", clearSort);
 
 // ================= SHARE / EXPORT TABLE =================
 const tableHeaders = ["#", "Product", "Quantity", "Price", "Total"];
