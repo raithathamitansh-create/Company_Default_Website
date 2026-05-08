@@ -1,4 +1,5 @@
 let allData = [];
+let visibleData = [];
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -33,6 +34,12 @@ const tableBody = document.querySelector("#dataTable tbody");
 const logoutBtn = document.getElementById("logoutBtn");
 const addIcon = document.getElementById("addIcon");
 const exportBtn = document.getElementById("exportBtn");
+const shareBtn = document.getElementById("shareBtn");
+const whatsappBtn = document.getElementById("whatsappBtn");
+const mailBtn = document.getElementById("mailBtn");
+const driveBtn = document.getElementById("driveBtn");
+const copyBtn = document.getElementById("copyBtn");
+const shareStatus = document.getElementById("shareStatus");
 
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", () => {
@@ -129,6 +136,8 @@ function renderTable(data, searchTerm = "") {
         );
     }
 
+    visibleData = filteredData;
+
     // ❌ No results case
     if (searchTerm && filteredData.length === 0) {
         tableBody.innerHTML = `
@@ -151,12 +160,12 @@ function renderTable(data, searchTerm = "") {
             return `
                 <tr style="${isMatch && searchTerm ? 'background-color: yellow;' : ''}">
                     <td>${index + 1}</td>
-                    <td>${item.product}</td>
-                    <td>${item.quantity}</td>
-                    <td>${item.price}</td>
-                    <td>${item.total}</td>
+                    <td>${escapeHtml(String(item.product))}</td>
+                    <td>${escapeHtml(String(item.quantity))}</td>
+                    <td>${escapeHtml(String(item.price))}</td>
+                    <td>${escapeHtml(String(item.total))}</td>
                     <td>
-                        <span onclick="deleteEntry(${item.id})">❌</span>
+                        <span class="delete-btn" onclick="deleteEntry(${item.id})">Delete</span>
                     </td>
                 </tr>
             `;
@@ -175,48 +184,205 @@ searchInput.addEventListener("input", () => {
     renderTable(allData, term);
 });
 
-// ================= EXPORT TO EXCEL =================
+// ================= SHARE / EXPORT TABLE =================
+const tableHeaders = ["#", "Product", "Quantity", "Price", "Total"];
+
+function escapeHtml(value) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function escapeExcelCell(value) {
     return value
+        .toString()
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
 
-function exportVisibleTableToExcel() {
-    const table = document.getElementById("dataTable");
-    const rows = Array.from(table.rows);
+function getVisibleTableRows() {
+    return visibleData.map((item, index) => [
+        index + 1,
+        item.product,
+        item.quantity,
+        item.price,
+        item.total
+    ]);
+}
 
-    const tableHtml = rows.map(row => {
-        const rowCells = Array.from(row.cells);
-        const cells = rowCells.length > 1 ? rowCells.slice(0, -1) : rowCells;
-        const tagName = row.parentElement.tagName === "THEAD" ? "th" : "td";
+function showShareStatus(message) {
+    shareStatus.textContent = message;
 
-        return `<tr>${cells.map(cell =>
-            `<${tagName}>${escapeExcelCell(cell.textContent.trim())}</${tagName}>`
-        ).join("")}</tr>`;
-    }).join("");
+    window.clearTimeout(showShareStatus.timer);
+    showShareStatus.timer = window.setTimeout(() => {
+        shareStatus.textContent = "";
+    }, 3500);
+}
 
-    const workbook = `
-        <html>
-            <head><meta charset="UTF-8"></head>
-            <body>
-                <table>${tableHtml}</table>
-            </body>
-        </html>
-    `;
+function hasShareableRows() {
+    if (getVisibleTableRows().length > 0) return true;
 
-    const blob = new Blob([workbook], { type: "application/vnd.ms-excel" });
-    const url = URL.createObjectURL(blob);
+    showShareStatus("No table data available to share.");
+    return false;
+}
+
+function formatTableAsText() {
+    const rows = getVisibleTableRows();
+    const lines = [
+        "Product Table",
+        tableHeaders.join(" | "),
+        ...rows.map(row => row.join(" | "))
+    ];
+
+    return lines.join("\n");
+}
+
+function escapeCsvValue(value) {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function formatTableAsCsv() {
+    const rows = [tableHeaders, ...getVisibleTableRows()];
+    return rows.map(row => row.map(escapeCsvValue).join(",")).join("\n");
+}
+
+function createTableFile(type = "csv") {
+    if (type === "excel") {
+        const rows = [tableHeaders, ...getVisibleTableRows()];
+        const tableHtml = rows.map((row, index) => {
+            const tagName = index === 0 ? "th" : "td";
+            return `<tr>${row.map(cell =>
+                `<${tagName}>${escapeExcelCell(cell)}</${tagName}>`
+            ).join("")}</tr>`;
+        }).join("");
+
+        const workbook = `
+            <html>
+                <head><meta charset="UTF-8"></head>
+                <body>
+                    <table>${tableHtml}</table>
+                </body>
+            </html>
+        `;
+
+        return new File([workbook], "product-table.xls", {
+            type: "application/vnd.ms-excel"
+        });
+    }
+
+    return new File([formatTableAsCsv()], "product-table.csv", {
+        type: "text/csv"
+    });
+}
+
+function downloadFile(file) {
+    const url = URL.createObjectURL(file);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "product-table.xls";
+    link.download = file.name;
     link.click();
     URL.revokeObjectURL(url);
 }
 
+function exportVisibleTableToExcel() {
+    if (!hasShareableRows()) return;
+
+    downloadFile(createTableFile("excel"));
+    showShareStatus("Excel file downloaded.");
+}
+
+async function shareTable() {
+    if (!hasShareableRows()) return;
+
+    const file = createTableFile("csv");
+    const shareDataWithFile = {
+        title: "Product Table",
+        text: "Sharing the current product table.",
+        files: [file]
+    };
+
+    try {
+        if (navigator.canShare && navigator.canShare(shareDataWithFile)) {
+            await navigator.share(shareDataWithFile);
+            showShareStatus("Table shared.");
+            return;
+        }
+
+        if (navigator.share) {
+            await navigator.share({
+                title: "Product Table",
+                text: formatTableAsText()
+            });
+            showShareStatus("Table shared.");
+            return;
+        }
+
+        await copyTableToClipboard();
+        showShareStatus("Sharing is not supported here, so the table was copied.");
+    } catch (error) {
+        if (error.name !== "AbortError") {
+            showShareStatus("Unable to open the share menu.");
+        }
+    }
+}
+
+function shareTableToWhatsapp() {
+    if (!hasShareableRows()) return;
+
+    const message = encodeURIComponent(formatTableAsText());
+    window.open(`https://wa.me/?text=${message}`, "_blank", "noopener");
+}
+
+function shareTableByEmail() {
+    if (!hasShareableRows()) return;
+
+    const subject = encodeURIComponent("Product Table");
+    const body = encodeURIComponent(formatTableAsText());
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function shareTableToDrive() {
+    if (!hasShareableRows()) return;
+
+    downloadFile(createTableFile("csv"));
+    window.open("https://drive.google.com/drive/my-drive", "_blank", "noopener");
+    showShareStatus("CSV downloaded. Upload it in the Drive tab that opened.");
+}
+
+async function copyTableToClipboard() {
+    if (!hasShareableRows()) return;
+
+    const text = formatTableAsText();
+
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+    } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+    }
+
+    showShareStatus("Table copied to clipboard.");
+}
+
 exportBtn.addEventListener("click", exportVisibleTableToExcel);
+shareBtn.addEventListener("click", shareTable);
+whatsappBtn.addEventListener("click", shareTableToWhatsapp);
+mailBtn.addEventListener("click", shareTableByEmail);
+driveBtn.addEventListener("click", shareTableToDrive);
+copyBtn.addEventListener("click", copyTableToClipboard);
 
 // ================= ADD ENTRY =================
 addBtn.addEventListener("click", async () => {

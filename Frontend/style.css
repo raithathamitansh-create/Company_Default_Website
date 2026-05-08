@@ -138,8 +138,9 @@ th, td {
 ====================== */
 .delete-btn {
     cursor: pointer;
-    font-size: 16px;
-    color: red;
+    font-size: 14px;
+    color: #c1121f;
+    font-weight: bold;
     display: none;
 }
 
@@ -195,7 +196,91 @@ tr:hover .delete-btn {
     background: #0056b3;
 }
 
-.export-btn {
-    max-width: 160px;
-    margin-bottom: 10px;
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+    max-width: 760px;
+}
+
+.action-btn {
+    width: auto;
+    min-width: 104px;
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 14px;
+}
+
+.whatsapp-btn {
+    background: #25D366;
+}
+
+.whatsapp-btn:hover {
+    background: #1da851;
+}
+
+.mail-btn {
+    background: #6c757d;
+}
+
+.mail-btn:hover {
+    background: #545b62;
+}
+
+.drive-btn {
+    background: #0F9D58;
+}
+
+.drive-btn:hover {
+    background: #0b8043;
+}
+
+.copy-btn {
+    background: #495057;
+}
+
+.copy-btn:hover {
+    background: #343a40;
+}
+
+.share-status {
+    min-height: 20px;
+    margin: 0 0 10px;
+    color: #1f4f2f;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+@media (max-width: 900px) {
+    body {
+        display: block;
+    }
+
+    .sidebar {
+        width: auto;
+        border-right: 0;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .main {
+        padding: 20px;
+    }
+
+    .add-icon {
+        right: 20px;
+    }
+}
+
+@media (max-width: 520px) {
+    .action-btn {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 }

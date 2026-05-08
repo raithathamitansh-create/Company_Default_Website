@@ -48,7 +48,16 @@
 
     <h2>Product Table</h2>
 
-    <button id="exportBtn" class="export-btn">Export to Excel</button>
+    <div class="table-actions" aria-label="Table actions">
+        <button id="exportBtn" class="action-btn">Export Excel</button>
+        <button id="shareBtn" class="action-btn">Share</button>
+        <button id="whatsappBtn" class="action-btn whatsapp-btn">WhatsApp</button>
+        <button id="mailBtn" class="action-btn mail-btn">Mail</button>
+        <button id="driveBtn" class="action-btn drive-btn">Drive</button>
+        <button id="copyBtn" class="action-btn copy-btn">Copy</button>
+    </div>
+
+    <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
 
     <table id="dataTable">
         <thead>
