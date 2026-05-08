@@ -194,3 +194,8 @@ tr:hover .delete-btn {
 .logout-btn:hover {
     background: #0056b3;
 }
+
+.export-btn {
+    max-width: 160px;
+    margin-bottom: 10px;
+}

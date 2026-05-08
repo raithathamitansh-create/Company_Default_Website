@@ -32,6 +32,7 @@ const addBtn = document.getElementById("addBtn");
 const tableBody = document.querySelector("#dataTable tbody");
 const logoutBtn = document.getElementById("logoutBtn");
 const addIcon = document.getElementById("addIcon");
+const exportBtn = document.getElementById("exportBtn");
 
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", () => {
@@ -174,6 +175,48 @@ searchInput.addEventListener("input", () => {
     renderTable(allData, term);
 });
 
+// ================= EXPORT TO EXCEL =================
+function escapeExcelCell(value) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function exportVisibleTableToExcel() {
+    const table = document.getElementById("dataTable");
+    const rows = Array.from(table.rows);
+
+    const tableHtml = rows.map(row => {
+        const rowCells = Array.from(row.cells);
+        const cells = rowCells.length > 1 ? rowCells.slice(0, -1) : rowCells;
+        const tagName = row.parentElement.tagName === "THEAD" ? "th" : "td";
+
+        return `<tr>${cells.map(cell =>
+            `<${tagName}>${escapeExcelCell(cell.textContent.trim())}</${tagName}>`
+        ).join("")}</tr>`;
+    }).join("");
+
+    const workbook = `
+        <html>
+            <head><meta charset="UTF-8"></head>
+            <body>
+                <table>${tableHtml}</table>
+            </body>
+        </html>
+    `;
+
+    const blob = new Blob([workbook], { type: "application/vnd.ms-excel" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "product-table.xls";
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+exportBtn.addEventListener("click", exportVisibleTableToExcel);
 
 // ================= ADD ENTRY =================
 addBtn.addEventListener("click", async () => {
