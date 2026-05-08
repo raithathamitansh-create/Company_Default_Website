@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product System</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -8,27 +9,33 @@
 
 <!-- LEFT PANEL -->
 <div class="sidebar">
-    <button id="logoutBtn" class="logout-btn">Logout</button>
+    <div class="sidebar-header">
+        <div>
+            <p class="eyebrow">Inventory</p>
+            <h1>Products</h1>
+        </div>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
 
-    <div style="margin-bottom: 10px;">
+    <div class="search-box">
        <input id="searchInput" placeholder="Search product..." />
        <button id="searchBtn">Search</button>
     </div>
     
-    <h3>Enter the details</h3>
+    <h3>Enter Details</h3>
 
     <div class="form-group">
-        <label>Enter Product</label>
+        <label>Product</label>
         <input id="product" maxlength = "10">
     </div>
 
     <div class="form-group">
-        <label>Enter Quantity</label>
+        <label>Quantity</label>
         <input id="quantity" type="number" max="20" min="1"  >
     </div>
 
     <div class="form-group">
-        <label>Enter Price per Quantity</label>
+        <label>Price per Quantity</label>
         <input id="price" type="number" min="1" max="60">
     </div>
 
@@ -46,7 +53,12 @@
     <!-- PLUS ICON -->
     <div class="add-icon" id="addIcon">+</div>
 
-    <h2>Product Table</h2>
+    <div class="main-header">
+        <div>
+            <p class="eyebrow">Overview</p>
+            <h2>Product Table</h2>
+        </div>
+    </div>
 
     <div class="table-actions" aria-label="Table actions">
         <button id="exportBtn" class="action-btn">Export Excel</button>
@@ -67,19 +79,21 @@
     <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
     <p id="tableSummary" class="table-summary"></p>
 
-    <table id="dataTable">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div class="table-card">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
 </div>
 
