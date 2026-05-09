@@ -4,6 +4,8 @@ let sortState = {
     key: "",
     direction: "asc"
 };
+let currentPage = 1;
+let rowsPerPage = 5;
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -49,6 +51,10 @@ const sortQuantityBtn = document.getElementById("sortQuantityBtn");
 const sortPriceBtn = document.getElementById("sortPriceBtn");
 const clearSortBtn = document.getElementById("clearSortBtn");
 const tableSummary = document.getElementById("tableSummary");
+const prevPageBtn = document.getElementById("prevPageBtn");
+const nextPageBtn = document.getElementById("nextPageBtn");
+const paginationInfo = document.getElementById("paginationInfo");
+const pageSizeSelect = document.getElementById("pageSizeSelect");
 
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", () => {
@@ -168,12 +174,14 @@ function setSort(key) {
         sortState.direction = "asc";
     }
 
+    currentPage = 1;
     applyTableView();
 }
 
 function clearSort() {
     sortState.key = "";
     sortState.direction = "asc";
+    currentPage = 1;
     applyTableView();
 }
 
@@ -207,6 +215,33 @@ function updateTableSummary() {
         : "No rows to show";
 }
 
+function getTotalPages(rowCount) {
+    return Math.max(1, Math.ceil(rowCount / rowsPerPage));
+}
+
+function getCurrentPageData(data) {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return data.slice(startIndex, startIndex + rowsPerPage);
+}
+
+function updatePagination(rowCount) {
+    const totalPages = getTotalPages(rowCount);
+    const hasRows = rowCount > 0;
+
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const pageStart = hasRows ? (currentPage - 1) * rowsPerPage + 1 : 0;
+    const pageEnd = Math.min(currentPage * rowsPerPage, rowCount);
+
+    paginationInfo.textContent = hasRows
+        ? `Page ${currentPage} of ${totalPages} | Showing ${pageStart}-${pageEnd} of ${rowCount}`
+        : "Page 1 of 1 | Showing 0 rows";
+
+    prevPageBtn.disabled = currentPage <= 1 || !hasRows;
+    nextPageBtn.disabled = currentPage >= totalPages || !hasRows;
+    pageSizeSelect.value = String(rowsPerPage);
+}
+
 function renderTable(data, searchTerm = "") {
 
     let filteredData = data;
@@ -220,8 +255,12 @@ function renderTable(data, searchTerm = "") {
 
     filteredData = getSortedData(filteredData);
     visibleData = filteredData;
+    currentPage = Math.min(currentPage, getTotalPages(filteredData.length));
+    const pageData = getCurrentPageData(filteredData);
+
     updateSortButtons();
     updateTableSummary();
+    updatePagination(filteredData.length);
 
     // ❌ No results case
     if (searchTerm && filteredData.length === 0) {
@@ -236,15 +275,16 @@ function renderTable(data, searchTerm = "") {
     }
 
     // ✅ Normal rendering + highlight
-    tableBody.innerHTML = filteredData.length
-        ? filteredData.map((item, index) => {
+    tableBody.innerHTML = pageData.length
+        ? pageData.map((item, index) => {
 
             const isMatch = item.product.toLowerCase()
                 .includes(searchTerm.toLowerCase());
+            const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
 
             return `
                 <tr style="${isMatch && searchTerm ? 'background-color: yellow;' : ''}">
-                    <td>${index + 1}</td>
+                    <td>${rowNumber}</td>
                     <td>${escapeHtml(String(item.product))}</td>
                     <td>${escapeHtml(String(item.quantity))}</td>
                     <td>${escapeHtml(String(item.price))}</td>
@@ -259,10 +299,12 @@ function renderTable(data, searchTerm = "") {
 }
 
 searchBtn.addEventListener("click", () => {
+    currentPage = 1;
     applyTableView();
 });
 
 searchInput.addEventListener("input", () => {
+    currentPage = 1;
     applyTableView();
 });
 
@@ -270,6 +312,26 @@ sortProductBtn.addEventListener("click", () => setSort("product"));
 sortQuantityBtn.addEventListener("click", () => setSort("quantity"));
 sortPriceBtn.addEventListener("click", () => setSort("price"));
 clearSortBtn.addEventListener("click", clearSort);
+
+prevPageBtn.addEventListener("click", () => {
+    if (currentPage > 1) {
+        currentPage -= 1;
+        applyTableView();
+    }
+});
+
+nextPageBtn.addEventListener("click", () => {
+    if (currentPage < getTotalPages(visibleData.length)) {
+        currentPage += 1;
+        applyTableView();
+    }
+});
+
+pageSizeSelect.addEventListener("change", () => {
+    rowsPerPage = Number(pageSizeSelect.value);
+    currentPage = 1;
+    applyTableView();
+});
 
 // ================= SHARE / EXPORT TABLE =================
 const tableHeaders = ["#", "Product", "Quantity", "Price", "Total"];
