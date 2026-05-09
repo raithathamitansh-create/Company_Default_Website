@@ -119,111 +119,15 @@ app.post("/add-entry", verifyToken,validateEntry, (req, res) => {
 app.get("/entries", verifyToken, (req, res) => {
 
     const userId = req.user.id;
-    const requestedPage = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 5, 1), 100);
-    const search = String(req.query.search || "").trim();
-    const sortKeyMap = {
-        product: "product",
-        quantity: "quantity",
-        price: "price",
-        total: "total",
-        created_at: "created_at"
-    };
-    const sortKey = sortKeyMap[req.query.sortKey] || "created_at";
-    const sortDirection = req.query.sortDirection === "asc" ? "ASC" : "DESC";
 
-    const conditions = ["user_id = ?"];
-    const params = [userId];
-
-    if (search) {
-        conditions.push("(product LIKE ? OR CAST(quantity AS CHAR) LIKE ? OR CAST(price AS CHAR) LIKE ? OR CAST(total AS CHAR) LIKE ?)");
-        const searchValue = `%${search}%`;
-        params.push(searchValue, searchValue, searchValue, searchValue);
-    }
-
-    addNumberFilter("price", req.query.minPrice, ">=");
-    addNumberFilter("price", req.query.maxPrice, "<=");
-    addNumberFilter("quantity", req.query.minQuantity, ">=");
-    addNumberFilter("quantity", req.query.maxQuantity, "<=");
-
-    if (req.query.dateFrom) {
-        conditions.push("DATE(created_at) >= ?");
-        params.push(req.query.dateFrom);
-    }
-
-    if (req.query.dateTo) {
-        conditions.push("DATE(created_at) <= ?");
-        params.push(req.query.dateTo);
-    }
-
-    const whereClause = conditions.join(" AND ");
-    const countSql = `SELECT COUNT(*) AS totalRows FROM products WHERE ${whereClause}`;
-    const summarySql = `
-        SELECT
-            COUNT(*) AS totalProducts,
-            COALESCE(SUM(quantity), 0) AS totalQuantity,
-            COALESCE(SUM(total), 0) AS totalAmount,
-            (
-                SELECT product
-                FROM products
-                WHERE ${whereClause}
-                ORDER BY price DESC, id DESC
-                LIMIT 1
-            ) AS highestPriceProduct
-        FROM products
-        WHERE ${whereClause}
-    `;
-    const dataSql = `
-        SELECT id, product, quantity, price, total, created_at
-        FROM products
-        WHERE ${whereClause}
-        ORDER BY ${sortKey} ${sortDirection}, id DESC
-        LIMIT ? OFFSET ?
-    `;
-
-    db.query(countSql, params, (countErr, countRows) => {
-        if (countErr) return res.status(500).json({ message: "Error fetching data" });
-        const totalRows = Number(countRows[0].totalRows || 0);
-        const totalPages = Math.max(1, Math.ceil(totalRows / limit));
-        const page = Math.min(requestedPage, totalPages);
-        const offset = (page - 1) * limit;
-
-        db.query(summarySql, [...params, ...params], (summaryErr, summaryRows) => {
-            if (summaryErr) return res.status(500).json({ message: "Error fetching summary" });
-
-            db.query(dataSql, [...params, limit, offset], (dataErr, result) => {
-                if (dataErr) return res.status(500).json({ message: "Error fetching data" });
-
-                const summary = summaryRows[0] || {};
-
-                res.json({
-                    data: result,
-                    pagination: {
-                        page,
-                        limit,
-                        totalRows,
-                        totalPages
-                    },
-                    summary: {
-                        totalProducts: Number(summary.totalProducts || 0),
-                        totalQuantity: Number(summary.totalQuantity || 0),
-                        totalAmount: Number(summary.totalAmount || 0),
-                        highestPriceProduct: summary.highestPriceProduct || "-"
-                    }
-                });
-            });
-        });
-    });
-
-    function addNumberFilter(column, value, operator) {
-        if (value === undefined || value === "") return;
-
-        const numberValue = Number(value);
-        if (Number.isNaN(numberValue)) return;
-
-        conditions.push(`${column} ${operator} ?`);
-        params.push(numberValue);
-    }
+    db.query(
+        "SELECT id, product, quantity, price, total, created_at FROM products WHERE user_id = ? ORDER BY id DESC",
+        [userId],
+        (err, result) => {
+            if (err) return res.status(500).json({ message: "Error fetching data" });
+            res.json(result);
+        }
+    );
 });
 
 

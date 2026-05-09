@@ -1,16 +1,12 @@
+let allData = [];
 let visibleData = [];
+let pageData = [];
 let sortState = {
     key: "",
     direction: "asc"
 };
 let currentPage = 1;
 let rowsPerPage = 5;
-let paginationMeta = {
-    page: 1,
-    limit: 5,
-    totalRows: 0,
-    totalPages: 1
-};
 let editingEntryId = null;
 
 // ================= STATE (Single Source of Truth) =================
@@ -188,40 +184,14 @@ function validateInputs() {
 // ================= LOAD DATA =================
 function resetPageAndLoad() {
     currentPage = 1;
-    loadData();
-}
-
-function appendQueryParam(params, key, value) {
-    if (value !== "") params.append(key, value);
-}
-
-function getEntriesQuery() {
-    const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: String(rowsPerPage)
-    });
-
-    appendQueryParam(params, "search", searchInput.value.trim());
-    appendQueryParam(params, "minPrice", minPriceFilter.value.trim());
-    appendQueryParam(params, "maxPrice", maxPriceFilter.value.trim());
-    appendQueryParam(params, "minQuantity", minQuantityFilter.value.trim());
-    appendQueryParam(params, "maxQuantity", maxQuantityFilter.value.trim());
-    appendQueryParam(params, "dateFrom", dateFromFilter.value);
-    appendQueryParam(params, "dateTo", dateToFilter.value);
-
-    if (sortState.key) {
-        params.append("sortKey", sortState.key);
-        params.append("sortDirection", sortState.direction);
-    }
-
-    return params.toString();
+    applyTableView();
 }
 
 async function loadData() {
     tableBody.innerHTML = `<tr><td colspan="7">Loading products...</td></tr>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/entries?${getEntriesQuery()}`, {
+        const res = await fetch(`${BASE_URL}/entries`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -232,24 +202,8 @@ async function loadData() {
             return;
         }
 
-        visibleData = Array.isArray(payload)
-            ? payload
-            : Array.isArray(payload.data)
-                ? payload.data
-                : [];
-        paginationMeta = payload.pagination || {
-            page: currentPage,
-            limit: rowsPerPage,
-            totalRows: visibleData.length,
-            totalPages: Math.max(1, Math.ceil(visibleData.length / rowsPerPage))
-        };
-        currentPage = paginationMeta.page;
-
-        updateDashboard(payload.summary);
-        updateSortButtons();
-        updateTableSummary();
-        updatePagination();
-        renderTable();
+        allData = Array.isArray(payload) ? payload : [];
+        applyTableView();
 
     } catch (error) {
         console.log("Load Error:", error);
@@ -258,15 +212,90 @@ async function loadData() {
     }
 }
 
-function updateDashboard(summary = {}) {
-    totalProductsStat.textContent = summary.totalProducts ?? 0;
-    totalQuantityStat.textContent = summary.totalQuantity ?? 0;
-    totalAmountStat.textContent = summary.totalAmount ?? 0;
-    highestPriceProductStat.textContent = summary.highestPriceProduct || "-";
+function getFilteredData() {
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    const minPrice = Number(minPriceFilter.value);
+    const maxPrice = Number(maxPriceFilter.value);
+    const minQuantity = Number(minQuantityFilter.value);
+    const maxQuantity = Number(maxQuantityFilter.value);
+    const dateFrom = dateFromFilter.value;
+    const dateTo = dateToFilter.value;
+
+    return allData.filter(item => {
+        const product = String(item.product || "").toLowerCase();
+        const quantity = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        const total = Number(item.total || 0);
+        const createdDate = item.created_at ? new Date(item.created_at).toISOString().slice(0, 10) : "";
+        const matchesSearch = !searchTerm || [product, quantity, price, total].some(value =>
+            String(value).toLowerCase().includes(searchTerm)
+        );
+
+        return matchesSearch
+            && (!minPriceFilter.value || price >= minPrice)
+            && (!maxPriceFilter.value || price <= maxPrice)
+            && (!minQuantityFilter.value || quantity >= minQuantity)
+            && (!maxQuantityFilter.value || quantity <= maxQuantity)
+            && (!dateFrom || createdDate >= dateFrom)
+            && (!dateTo || createdDate <= dateTo);
+    });
+}
+
+function getSortedData(data) {
+    if (!sortState.key) return [...data];
+
+    const sortedData = [...data].sort((firstItem, secondItem) => {
+        if (sortState.key === "product") {
+            return String(firstItem.product).localeCompare(
+                String(secondItem.product),
+                undefined,
+                { sensitivity: "base" }
+            );
+        }
+
+        return Number(firstItem[sortState.key]) - Number(secondItem[sortState.key]);
+    });
+
+    return sortState.direction === "desc" ? sortedData.reverse() : sortedData;
+}
+
+function getTotalPages(rowCount) {
+    return Math.max(1, Math.ceil(rowCount / rowsPerPage));
+}
+
+function getCurrentPageData(data) {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return data.slice(startIndex, startIndex + rowsPerPage);
+}
+
+function applyTableView() {
+    visibleData = getSortedData(getFilteredData());
+    currentPage = Math.min(currentPage, getTotalPages(visibleData.length));
+    pageData = getCurrentPageData(visibleData);
+
+    updateDashboard();
+    updateSortButtons();
+    updateTableSummary();
+    updatePagination();
+    renderTable();
+}
+
+function updateDashboard() {
+    const totalQuantity = visibleData.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalAmount = visibleData.reduce((sum, item) => sum + Number(item.total || 0), 0);
+    const highestPriceProduct = visibleData.reduce((highest, item) => {
+        if (!highest || Number(item.price || 0) > Number(highest.price || 0)) return item;
+        return highest;
+    }, null);
+
+    totalProductsStat.textContent = visibleData.length;
+    totalQuantityStat.textContent = totalQuantity;
+    totalAmountStat.textContent = totalAmount;
+    highestPriceProductStat.textContent = highestPriceProduct?.product || "-";
 }
 
 function updateTableSummary() {
-    const totalRows = paginationMeta.totalRows || 0;
+    const totalRows = visibleData.length;
 
     tableSummary.textContent = totalRows
         ? `${totalRows} matching rows`
@@ -274,16 +303,17 @@ function updateTableSummary() {
 }
 
 function updatePagination() {
-    const hasRows = paginationMeta.totalRows > 0;
+    const totalPages = getTotalPages(visibleData.length);
+    const hasRows = visibleData.length > 0;
     const pageStart = hasRows ? (currentPage - 1) * rowsPerPage + 1 : 0;
-    const pageEnd = Math.min(currentPage * rowsPerPage, paginationMeta.totalRows);
+    const pageEnd = Math.min(currentPage * rowsPerPage, visibleData.length);
 
     paginationInfo.textContent = hasRows
-        ? `Page ${currentPage} of ${paginationMeta.totalPages} | Showing ${pageStart}-${pageEnd} of ${paginationMeta.totalRows}`
+        ? `Page ${currentPage} of ${totalPages} | Showing ${pageStart}-${pageEnd} of ${visibleData.length}`
         : "Page 1 of 1 | Showing 0 rows";
 
     prevPageBtn.disabled = currentPage <= 1 || !hasRows;
-    nextPageBtn.disabled = currentPage >= paginationMeta.totalPages || !hasRows;
+    nextPageBtn.disabled = currentPage >= totalPages || !hasRows;
     pageSizeSelect.value = String(rowsPerPage);
 }
 
@@ -335,12 +365,12 @@ function formatDate(value) {
 }
 
 function renderTable() {
-    if (visibleData.length === 0) {
+    if (pageData.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="7">No products found.</td></tr>`;
         return;
     }
 
-    tableBody.innerHTML = visibleData.map((item, index) => {
+    tableBody.innerHTML = pageData.map((item, index) => {
         const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
 
         return `
@@ -384,14 +414,14 @@ clearFiltersBtn.addEventListener("click", () => {
 prevPageBtn.addEventListener("click", () => {
     if (currentPage > 1) {
         currentPage -= 1;
-        loadData();
+        applyTableView();
     }
 });
 
 nextPageBtn.addEventListener("click", () => {
-    if (currentPage < paginationMeta.totalPages) {
+    if (currentPage < getTotalPages(visibleData.length)) {
         currentPage += 1;
-        loadData();
+        applyTableView();
     }
 });
 
@@ -421,7 +451,7 @@ function escapeExcelCell(value) {
 }
 
 function getVisibleTableRows() {
-    return visibleData.map((item, index) => [
+    return pageData.map((item, index) => [
         (currentPage - 1) * rowsPerPage + index + 1,
         item.product,
         item.quantity,
@@ -639,7 +669,7 @@ addBtn.addEventListener("click", async () => {
 });
 
 function startEdit(id) {
-    const item = visibleData.find(entry => Number(entry.id) === Number(id));
+    const item = allData.find(entry => Number(entry.id) === Number(id));
     if (!item) return;
 
     editingEntryId = id;
