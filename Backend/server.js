@@ -121,10 +121,14 @@ app.get("/entries", verifyToken, (req, res) => {
     const userId = req.user.id;
 
     db.query(
-        "SELECT id, product, quantity, price, total, created_at FROM products WHERE user_id = ? ORDER BY id DESC",
+        "SELECT * FROM products WHERE user_id = ? ORDER BY id DESC",
         [userId],
         (err, result) => {
-            if (err) return res.status(500).json({ message: "Error fetching data" });
+            if (err) {
+                console.error("Entries fetch error:", err);
+                return res.status(500).json({ message: "Error fetching data" });
+            }
+
             res.json(result);
         }
     );
