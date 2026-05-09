@@ -18,6 +18,7 @@ const otpModal = document.getElementById("otpModal");
 const otpInput = document.getElementById("otpInput");
 const otpCancelBtn = document.getElementById("otpCancelBtn");
 const otpVerifyBtn = document.getElementById("otpVerifyBtn");
+const passwordToggles = document.querySelectorAll(".password-toggle");
 
 function showToast(message) {
     authToast.textContent = message;
@@ -85,6 +86,16 @@ const switchToSignup = () => {
 
 loginTab.addEventListener("click", switchToLogin);
 signupTab.addEventListener("click", switchToSignup);
+
+passwordToggles.forEach(button => {
+    button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.target);
+        const shouldShow = input.type === "password";
+
+        input.type = shouldShow ? "text" : "password";
+        button.textContent = shouldShow ? "Hide" : "Show";
+    });
+});
 
 // ======================
 // SIGNUP HANDLER
