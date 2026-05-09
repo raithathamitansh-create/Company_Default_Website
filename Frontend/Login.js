@@ -1,6 +1,10 @@
-const BASE_URL = "https://company-default-website.onrender.com";
+const BASE_URL = window.APP_CONFIG?.API_BASE_URL || (
+    window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "https://company-default-website.onrender.com"
+);
 
-console.log("🚀 Auth script loaded");
+console.log("Auth script loaded");
 
 // ======================
 // ELEMENTS
@@ -9,7 +13,56 @@ const loginTab = document.getElementById("loginTab");
 const signupTab = document.getElementById("signupTab");
 const loginForm = document.getElementById("loginForm");
 const signupForm = document.getElementById("signupForm");
+const authToast = document.getElementById("authToast");
+const otpModal = document.getElementById("otpModal");
+const otpInput = document.getElementById("otpInput");
+const otpCancelBtn = document.getElementById("otpCancelBtn");
+const otpVerifyBtn = document.getElementById("otpVerifyBtn");
 
+function showToast(message) {
+    authToast.textContent = message;
+    authToast.classList.add("show");
+
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => {
+        authToast.classList.remove("show");
+    }, 3000);
+}
+
+function requestOtp() {
+    otpInput.value = "";
+    otpModal.classList.add("open");
+    otpModal.setAttribute("aria-hidden", "false");
+    otpInput.focus();
+
+    return new Promise(resolve => {
+        function close(value) {
+            otpModal.classList.remove("open");
+            otpModal.setAttribute("aria-hidden", "true");
+            otpVerifyBtn.removeEventListener("click", onVerify);
+            otpCancelBtn.removeEventListener("click", onCancel);
+            otpInput.removeEventListener("keydown", onKeydown);
+            resolve(value);
+        }
+
+        function onVerify() {
+            close(otpInput.value.trim());
+        }
+
+        function onCancel() {
+            close("");
+        }
+
+        function onKeydown(event) {
+            if (event.key === "Enter") onVerify();
+            if (event.key === "Escape") onCancel();
+        }
+
+        otpVerifyBtn.addEventListener("click", onVerify);
+        otpCancelBtn.addEventListener("click", onCancel);
+        otpInput.addEventListener("keydown", onKeydown);
+    });
+}
 
 // ======================
 // TOGGLE FORMS
@@ -33,7 +86,6 @@ const switchToSignup = () => {
 loginTab.addEventListener("click", switchToLogin);
 signupTab.addEventListener("click", switchToSignup);
 
-
 // ======================
 // SIGNUP HANDLER
 // ======================
@@ -45,11 +97,9 @@ signupForm.addEventListener("submit", async (e) => {
     const password = signupForm.querySelector('input[type="password"]').value.trim();
 
     if (!name || !email || !password) {
-        alert("All fields are required ❌");
+        showToast("All fields are required.");
         return;
     }
-
-    console.log("📤 Sending signup request...");
 
     try {
         const res = await fetch(`${BASE_URL}/signup`, {
@@ -62,19 +112,14 @@ signupForm.addEventListener("submit", async (e) => {
 
         const data = await res.json();
 
-        console.log("Signup response:", data);
-
-        alert(data.message || "Signup successful");
-
-        // Switch to login after signup
+        showToast(data.message || "Signup successful.");
         switchToLogin();
 
     } catch (error) {
-        console.error("❌ Signup error:", error);
-        alert("Signup failed ❌");
+        console.error("Signup error:", error);
+        showToast("Signup failed.");
     }
 });
-
 
 // ======================
 // LOGIN HANDLER
@@ -86,11 +131,9 @@ loginForm.addEventListener("submit", async (e) => {
     const password = loginForm.querySelector('input[type="password"]').value.trim();
 
     if (!email || !password) {
-        alert("Email and password required ❌");
+        showToast("Email and password are required.");
         return;
     }
-
-    console.log("🔐 Login attempt:", email);
 
     try {
         const res = await fetch(`${BASE_URL}/login`, {
@@ -103,57 +146,44 @@ loginForm.addEventListener("submit", async (e) => {
 
         const data = await res.json();
 
-        console.log("Login response:", data);
+        if (res.ok && data.success) {
+            showToast(data.message || "OTP sent.");
 
-       if (res.ok && data.success) {
+            const otp = await requestOtp();
 
-    alert(data.message);
+            if (!otp) {
+                showToast("OTP is required.");
+                return;
+            }
 
-    // Ask OTP from user
-    const otp = prompt("Enter OTP sent to your email");
+            const verifyRes = await fetch(`${BASE_URL}/verify-otp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    userId: data.userId,
+                    otp
+                })
+            });
 
-    if (!otp) {
-        alert("OTP is required ❌");
-        return;
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+                localStorage.setItem("token", verifyData.token);
+                showToast("Login successful.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            showToast(verifyData.message || "Invalid OTP.");
+            return;
+        }
+
+        showToast(data.message || "Login failed.");
+
+    } catch (error) {
+        console.error("Login error:", error);
+        showToast("Login failed.");
     }
-
-    // Verify OTP
-    const verifyRes = await fetch(`${BASE_URL}/verify-otp`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            userId: data.userId,
-            otp: otp
-        })
-    });
-
-    const verifyData = await verifyRes.json();
-
-    console.log("OTP Verify Response:", verifyData);
-
-    if (verifyRes.ok && verifyData.success) {
-
-        localStorage.setItem("token", verifyData.token);
-
-        alert("Login successful ✅");
-
-        // Redirect to dashboard
-        window.location.href = "index.html";
-
-    } else {
-
-        alert(verifyData.message || "Invalid OTP ❌");
-    }
-
-    } else {
-
-    alert(data.message || "Login failed ❌");
-    }
-    
-     } catch (error) {
-        console.error("❌ Login error:", error);
-        alert("Login failed ❌");
-     }
 });

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS products (
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     total DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -50,7 +51,7 @@ db.query(sql, (err) => {
         }
 
         if (columns.length > 0) {
-            return showTables();
+            return ensureCreatedAtColumn();
         }
 
         db.query("ALTER TABLE products ADD COLUMN user_id INT NULL AFTER id", (err) => {
@@ -60,10 +61,36 @@ db.query(sql, (err) => {
             }
 
             console.log("Added user_id column to products table");
-            showTables();
+            ensureCreatedAtColumn();
         });
     });
 });
+
+function ensureCreatedAtColumn() {
+    db.query("SHOW COLUMNS FROM products LIKE 'created_at'", (err, columns) => {
+        if (err) {
+            console.error("Could not verify products.created_at:", err.message);
+            process.exit(1);
+        }
+
+        if (columns.length > 0) {
+            return showTables();
+        }
+
+        db.query(
+            "ALTER TABLE products ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER total",
+            (err) => {
+                if (err) {
+                    console.error("Could not add created_at column:", err.message);
+                    process.exit(1);
+                }
+
+                console.log("Added created_at column to products table");
+                showTables();
+            }
+        );
+    });
+}
 
 function showTables() {
     db.query("SHOW TABLES", (err, rows) => {

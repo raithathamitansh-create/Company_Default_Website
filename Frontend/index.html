@@ -31,7 +31,7 @@
 
     <div class="form-group">
         <label>Quantity</label>
-        <input id="quantity" type="number" max="20" min="1"  >
+        <input id="quantity" type="number" max="50" min="1"  >
     </div>
 
     <div class="form-group">
@@ -45,6 +45,7 @@
     </div>
 
     <button id="addBtn">Add</button>
+    <button id="cancelEditBtn" class="secondary-btn" type="button">Cancel Edit</button>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -60,6 +61,25 @@
         </div>
     </div>
 
+    <div class="stats-grid" aria-label="Product summary">
+        <div class="stat-box">
+            <span>Total Products</span>
+            <strong id="totalProductsStat">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Total Quantity</span>
+            <strong id="totalQuantityStat">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Total Amount</span>
+            <strong id="totalAmountStat">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Highest Price</span>
+            <strong id="highestPriceProductStat">-</strong>
+        </div>
+    </div>
+
     <div class="table-actions" aria-label="Table actions">
         <button id="exportBtn" class="action-btn">Export Excel</button>
         <button id="shareBtn" class="action-btn">Share</button>
@@ -67,6 +87,16 @@
         <button id="mailBtn" class="action-btn mail-btn">Mail</button>
         <button id="driveBtn" class="action-btn drive-btn">Drive</button>
         <button id="copyBtn" class="action-btn copy-btn">Copy</button>
+    </div>
+
+    <div class="filter-actions" aria-label="Filter table">
+        <input id="minPriceFilter" type="number" min="1" placeholder="Min price">
+        <input id="maxPriceFilter" type="number" min="1" placeholder="Max price">
+        <input id="minQuantityFilter" type="number" min="1" max="50" placeholder="Min qty">
+        <input id="maxQuantityFilter" type="number" min="1" max="50" placeholder="Max qty">
+        <input id="dateFromFilter" type="date" aria-label="Date from">
+        <input id="dateToFilter" type="date" aria-label="Date to">
+        <button id="clearFiltersBtn" class="sort-btn clear-sort-btn">Clear Filters</button>
     </div>
 
     <div class="sort-actions" aria-label="Sort table">
@@ -88,7 +118,8 @@
                     <th>Quantity</th>
                     <th>Price</th>
                     <th>Total</th>
-                    <th>Delete</th>
+                    <th>Date</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -111,6 +142,20 @@
 
 </div>
 
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="confirmModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <p id="confirmMessage"></p>
+        <div class="modal-actions">
+            <button id="confirmCancelBtn" class="modal-btn secondary-modal-btn">Cancel</button>
+            <button id="confirmOkBtn" class="modal-btn danger-modal-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script src="config.js"></script>
 <script src="script.js"></script>
 
 </body>

@@ -174,3 +174,82 @@ body {
     padding: 30px;
     box-sizing: border-box;
 }
+
+.auth-toast {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    max-width: 320px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.auth-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.otp-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.otp-overlay.open {
+    display: flex;
+}
+
+.otp-box {
+    width: min(360px, 100%);
+    padding: 22px;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.otp-box h2 {
+    margin: 0 0 14px;
+}
+
+.otp-box input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.otp-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.otp-actions button {
+    min-height: 38px;
+    padding: 9px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: #007BFF;
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+#otpCancelBtn {
+    background: #64748b;
+}

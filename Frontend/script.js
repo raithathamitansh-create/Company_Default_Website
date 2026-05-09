@@ -1,4 +1,3 @@
-let allData = [];
 let visibleData = [];
 let sortState = {
     key: "",
@@ -6,6 +5,13 @@ let sortState = {
 };
 let currentPage = 1;
 let rowsPerPage = 5;
+let paginationMeta = {
+    page: 1,
+    limit: 5,
+    totalRows: 0,
+    totalPages: 1
+};
+let editingEntryId = null;
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -16,15 +22,16 @@ const state = {
 };
 
 // ================= BASE =================
-const BASE_URL = window.location.hostname === "localhost"
-    ? "http://localhost:5000"
-    : "https://company-default-website.onrender.com";
+const BASE_URL = window.APP_CONFIG?.API_BASE_URL || (
+    window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "https://company-default-website.onrender.com"
+);
 
 // ================= AUTH =================
 const token = localStorage.getItem("token");
 
 if (!token) {
-    alert("Login first");
     window.location.href = "Login.html";
 }
 
@@ -36,6 +43,7 @@ const quantityInput = document.getElementById("quantity");
 const priceInput = document.getElementById("price");
 const totalInput = document.getElementById("total");
 const addBtn = document.getElementById("addBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
 const tableBody = document.querySelector("#dataTable tbody");
 const logoutBtn = document.getElementById("logoutBtn");
 const addIcon = document.getElementById("addIcon");
@@ -55,16 +63,72 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const paginationInfo = document.getElementById("paginationInfo");
 const pageSizeSelect = document.getElementById("pageSizeSelect");
+const minPriceFilter = document.getElementById("minPriceFilter");
+const maxPriceFilter = document.getElementById("maxPriceFilter");
+const minQuantityFilter = document.getElementById("minQuantityFilter");
+const maxQuantityFilter = document.getElementById("maxQuantityFilter");
+const dateFromFilter = document.getElementById("dateFromFilter");
+const dateToFilter = document.getElementById("dateToFilter");
+const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+const totalProductsStat = document.getElementById("totalProductsStat");
+const totalQuantityStat = document.getElementById("totalQuantityStat");
+const totalAmountStat = document.getElementById("totalAmountStat");
+const highestPriceProductStat = document.getElementById("highestPriceProductStat");
+const toast = document.getElementById("toast");
+const confirmModal = document.getElementById("confirmModal");
+const confirmMessage = document.getElementById("confirmMessage");
+const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+const confirmOkBtn = document.getElementById("confirmOkBtn");
+
+// ================= FEEDBACK =================
+function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
+function showConfirm(message) {
+    confirmMessage.textContent = message;
+    confirmModal.classList.add("open");
+    confirmModal.setAttribute("aria-hidden", "false");
+
+    return new Promise(resolve => {
+        function close(result) {
+            confirmModal.classList.remove("open");
+            confirmModal.setAttribute("aria-hidden", "true");
+            confirmOkBtn.removeEventListener("click", onConfirm);
+            confirmCancelBtn.removeEventListener("click", onCancel);
+            resolve(result);
+        }
+
+        function onConfirm() {
+            close(true);
+        }
+
+        function onCancel() {
+            close(false);
+        }
+
+        confirmOkBtn.addEventListener("click", onConfirm);
+        confirmCancelBtn.addEventListener("click", onCancel);
+    });
+}
 
 // ================= LOGOUT =================
-logoutBtn.addEventListener("click", () => {
-    if (confirm("Are you sure you want to logout?")) {
+logoutBtn.addEventListener("click", async () => {
+    const confirmed = await showConfirm("Are you sure you want to logout?");
+
+    if (confirmed) {
         localStorage.removeItem("token");
         window.location.href = "Login.html";
     }
 });
 
-// ================= RENDER (State → UI) =================
+// ================= RENDER (State -> UI) =================
 function render() {
     productInput.value = state.product;
     quantityInput.value = state.quantity;
@@ -72,12 +136,10 @@ function render() {
     totalInput.value = state.total;
 }
 
-// ================= CALCULATE =================
 function calculateTotal() {
     state.total = state.quantity * state.price;
 }
 
-// ================= INPUT BINDING (UI → State) =================
 productInput.addEventListener("input", () => {
     state.product = productInput.value;
 });
@@ -97,25 +159,25 @@ priceInput.addEventListener("input", () => {
 // ================= VALIDATION =================
 function validateInputs() {
     if (!state.product.trim()) {
-        alert("Product name is required");
+        showToast("Product name is required.");
         productInput.focus();
         return false;
     }
 
-    if (state.quantity <= 0) {
-        alert("Quantity must be greater than 0");
-        quantityInput.focus();
+    if (state.product.length > 10) {
+        showToast("Product must not exceed 10 characters.");
+        productInput.focus();
         return false;
     }
 
-    if (state.quantity > 50) {
-        alert("Quantity cannot exceed 50 ❌");
+    if (!Number.isInteger(state.quantity) || state.quantity < 1 || state.quantity > 50) {
+        showToast("Quantity must be between 1 and 50.");
         quantityInput.focus();
         return false;
     }
 
     if (state.price <= 0) {
-        alert("Price must be greater than 0");
+        showToast("Price must be greater than 0.");
         priceInput.focus();
         return false;
     }
@@ -124,65 +186,105 @@ function validateInputs() {
 }
 
 // ================= LOAD DATA =================
+function resetPageAndLoad() {
+    currentPage = 1;
+    loadData();
+}
+
+function appendQueryParam(params, key, value) {
+    if (value !== "") params.append(key, value);
+}
+
+function getEntriesQuery() {
+    const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(rowsPerPage)
+    });
+
+    appendQueryParam(params, "search", searchInput.value.trim());
+    appendQueryParam(params, "minPrice", minPriceFilter.value.trim());
+    appendQueryParam(params, "maxPrice", maxPriceFilter.value.trim());
+    appendQueryParam(params, "minQuantity", minQuantityFilter.value.trim());
+    appendQueryParam(params, "maxQuantity", maxQuantityFilter.value.trim());
+    appendQueryParam(params, "dateFrom", dateFromFilter.value);
+    appendQueryParam(params, "dateTo", dateToFilter.value);
+
+    if (sortState.key) {
+        params.append("sortKey", sortState.key);
+        params.append("sortDirection", sortState.direction);
+    }
+
+    return params.toString();
+}
+
 async function loadData() {
+    tableBody.innerHTML = `<tr><td colspan="7">Loading products...</td></tr>`;
+
     try {
-        const res = await fetch(`${BASE_URL}/entries`, {
+        const res = await fetch(`${BASE_URL}/entries?${getEntriesQuery()}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        const data = await res.json();
-        allData = data; // ⭐ store data
+        const payload = await res.json();
 
-        applyTableView();
+        if (!res.ok) {
+            showToast(payload.message || "Error fetching data.");
+            return;
+        }
+
+        visibleData = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload.data)
+                ? payload.data
+                : [];
+        paginationMeta = payload.pagination || {
+            page: currentPage,
+            limit: rowsPerPage,
+            totalRows: visibleData.length,
+            totalPages: Math.max(1, Math.ceil(visibleData.length / rowsPerPage))
+        };
+        currentPage = paginationMeta.page;
+
+        updateDashboard(payload.summary);
+        updateSortButtons();
+        updateTableSummary();
+        updatePagination();
+        renderTable();
 
     } catch (error) {
         console.log("Load Error:", error);
+        tableBody.innerHTML = `<tr><td colspan="7">Unable to load products.</td></tr>`;
+        showToast("Unable to load products.");
     }
 }
 
-function getCurrentSearchTerm() {
-    return searchInput.value.trim();
+function updateDashboard(summary = {}) {
+    totalProductsStat.textContent = summary.totalProducts ?? 0;
+    totalQuantityStat.textContent = summary.totalQuantity ?? 0;
+    totalAmountStat.textContent = summary.totalAmount ?? 0;
+    highestPriceProductStat.textContent = summary.highestPriceProduct || "-";
 }
 
-function applyTableView() {
-    renderTable(allData, getCurrentSearchTerm());
+function updateTableSummary() {
+    const totalRows = paginationMeta.totalRows || 0;
+
+    tableSummary.textContent = totalRows
+        ? `${totalRows} matching rows`
+        : "No rows to show";
 }
 
-function getSortedData(data) {
-    if (!sortState.key) return [...data];
+function updatePagination() {
+    const hasRows = paginationMeta.totalRows > 0;
+    const pageStart = hasRows ? (currentPage - 1) * rowsPerPage + 1 : 0;
+    const pageEnd = Math.min(currentPage * rowsPerPage, paginationMeta.totalRows);
 
-    const sortedData = [...data].sort((firstItem, secondItem) => {
-        if (sortState.key === "product") {
-            return String(firstItem.product).localeCompare(
-                String(secondItem.product),
-                undefined,
-                { sensitivity: "base" }
-            );
-        }
+    paginationInfo.textContent = hasRows
+        ? `Page ${currentPage} of ${paginationMeta.totalPages} | Showing ${pageStart}-${pageEnd} of ${paginationMeta.totalRows}`
+        : "Page 1 of 1 | Showing 0 rows";
 
-        return Number(firstItem[sortState.key]) - Number(secondItem[sortState.key]);
-    });
-
-    return sortState.direction === "desc" ? sortedData.reverse() : sortedData;
-}
-
-function setSort(key) {
-    if (sortState.key === key) {
-        sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
-    } else {
-        sortState.key = key;
-        sortState.direction = "asc";
-    }
-
-    currentPage = 1;
-    applyTableView();
-}
-
-function clearSort() {
-    sortState.key = "";
-    sortState.direction = "asc";
-    currentPage = 1;
-    applyTableView();
+    prevPageBtn.disabled = currentPage <= 1 || !hasRows;
+    nextPageBtn.disabled = currentPage >= paginationMeta.totalPages || !hasRows;
+    pageSizeSelect.value = String(rowsPerPage);
 }
 
 function getSortLabel(key, ascendingText, descendingText) {
@@ -205,136 +307,101 @@ function updateSortButtons() {
     if (sortState.key === "price") sortPriceBtn.classList.add("active-sort");
 }
 
-function updateTableSummary() {
-    const rowCount = visibleData.length;
-    const totalQuantity = visibleData.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    const totalAmount = visibleData.reduce((sum, item) => sum + Number(item.total || 0), 0);
-
-    tableSummary.textContent = rowCount
-        ? `${rowCount} rows | Quantity: ${totalQuantity} | Total: ${totalAmount}`
-        : "No rows to show";
-}
-
-function getTotalPages(rowCount) {
-    return Math.max(1, Math.ceil(rowCount / rowsPerPage));
-}
-
-function getCurrentPageData(data) {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return data.slice(startIndex, startIndex + rowsPerPage);
-}
-
-function updatePagination(rowCount) {
-    const totalPages = getTotalPages(rowCount);
-    const hasRows = rowCount > 0;
-
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const pageStart = hasRows ? (currentPage - 1) * rowsPerPage + 1 : 0;
-    const pageEnd = Math.min(currentPage * rowsPerPage, rowCount);
-
-    paginationInfo.textContent = hasRows
-        ? `Page ${currentPage} of ${totalPages} | Showing ${pageStart}-${pageEnd} of ${rowCount}`
-        : "Page 1 of 1 | Showing 0 rows";
-
-    prevPageBtn.disabled = currentPage <= 1 || !hasRows;
-    nextPageBtn.disabled = currentPage >= totalPages || !hasRows;
-    pageSizeSelect.value = String(rowsPerPage);
-}
-
-function renderTable(data, searchTerm = "") {
-
-    let filteredData = data;
-
-    // If searching → filter data
-    if (searchTerm) {
-        filteredData = data.filter(item =>
-            item.product.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+function setSort(key) {
+    if (sortState.key === key) {
+        sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+        sortState.key = key;
+        sortState.direction = "asc";
     }
 
-    filteredData = getSortedData(filteredData);
-    visibleData = filteredData;
-    currentPage = Math.min(currentPage, getTotalPages(filteredData.length));
-    const pageData = getCurrentPageData(filteredData);
+    resetPageAndLoad();
+}
 
-    updateSortButtons();
-    updateTableSummary();
-    updatePagination(filteredData.length);
+function clearSort() {
+    sortState.key = "";
+    sortState.direction = "asc";
+    resetPageAndLoad();
+}
 
-    // ❌ No results case
-    if (searchTerm && filteredData.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" style="color:red; font-weight:bold;">
-                    No results found ❌
-                </td>
-            </tr>
-        `;
+function formatDate(value) {
+    if (!value) return "-";
+
+    return new Date(value).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+    });
+}
+
+function renderTable() {
+    if (visibleData.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="7">No products found.</td></tr>`;
         return;
     }
 
-    // ✅ Normal rendering + highlight
-    tableBody.innerHTML = pageData.length
-        ? pageData.map((item, index) => {
+    tableBody.innerHTML = visibleData.map((item, index) => {
+        const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
 
-            const isMatch = item.product.toLowerCase()
-                .includes(searchTerm.toLowerCase());
-            const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
-
-            return `
-                <tr style="${isMatch && searchTerm ? 'background-color: yellow;' : ''}">
-                    <td>${rowNumber}</td>
-                    <td>${escapeHtml(String(item.product))}</td>
-                    <td>${escapeHtml(String(item.quantity))}</td>
-                    <td>${escapeHtml(String(item.price))}</td>
-                    <td>${escapeHtml(String(item.total))}</td>
-                    <td>
-                        <span class="delete-btn" onclick="deleteEntry(${item.id})">Delete</span>
-                    </td>
-                </tr>
-            `;
-        }).join("")
-        : `<tr><td colspan="6">No data available</td></tr>`;
+        return `
+            <tr>
+                <td>${rowNumber}</td>
+                <td>${escapeHtml(String(item.product))}</td>
+                <td>${escapeHtml(String(item.quantity))}</td>
+                <td>${escapeHtml(String(item.price))}</td>
+                <td>${escapeHtml(String(item.total))}</td>
+                <td>${escapeHtml(formatDate(item.created_at))}</td>
+                <td>
+                    <span class="edit-btn" onclick="startEdit(${item.id})">Edit</span>
+                    <span class="delete-btn" onclick="deleteEntry(${item.id})">Delete</span>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
 
-searchBtn.addEventListener("click", () => {
-    currentPage = 1;
-    applyTableView();
-});
-
-searchInput.addEventListener("input", () => {
-    currentPage = 1;
-    applyTableView();
-});
-
+searchBtn.addEventListener("click", resetPageAndLoad);
+searchInput.addEventListener("input", resetPageAndLoad);
 sortProductBtn.addEventListener("click", () => setSort("product"));
 sortQuantityBtn.addEventListener("click", () => setSort("quantity"));
 sortPriceBtn.addEventListener("click", () => setSort("price"));
 clearSortBtn.addEventListener("click", clearSort);
 
+[minPriceFilter, maxPriceFilter, minQuantityFilter, maxQuantityFilter, dateFromFilter, dateToFilter].forEach(input => {
+    input.addEventListener("input", resetPageAndLoad);
+});
+
+clearFiltersBtn.addEventListener("click", () => {
+    minPriceFilter.value = "";
+    maxPriceFilter.value = "";
+    minQuantityFilter.value = "";
+    maxQuantityFilter.value = "";
+    dateFromFilter.value = "";
+    dateToFilter.value = "";
+    resetPageAndLoad();
+});
+
 prevPageBtn.addEventListener("click", () => {
     if (currentPage > 1) {
         currentPage -= 1;
-        applyTableView();
+        loadData();
     }
 });
 
 nextPageBtn.addEventListener("click", () => {
-    if (currentPage < getTotalPages(visibleData.length)) {
+    if (currentPage < paginationMeta.totalPages) {
         currentPage += 1;
-        applyTableView();
+        loadData();
     }
 });
 
 pageSizeSelect.addEventListener("change", () => {
     rowsPerPage = Number(pageSizeSelect.value);
-    currentPage = 1;
-    applyTableView();
+    resetPageAndLoad();
 });
 
 // ================= SHARE / EXPORT TABLE =================
-const tableHeaders = ["#", "Product", "Quantity", "Price", "Total"];
+const tableHeaders = ["#", "Product", "Quantity", "Price", "Total", "Date"];
 
 function escapeHtml(value) {
     return value
@@ -355,11 +422,12 @@ function escapeExcelCell(value) {
 
 function getVisibleTableRows() {
     return visibleData.map((item, index) => [
-        index + 1,
+        (currentPage - 1) * rowsPerPage + index + 1,
         item.product,
         item.quantity,
         item.price,
-        item.total
+        item.total,
+        formatDate(item.created_at)
     ]);
 }
 
@@ -533,14 +601,19 @@ mailBtn.addEventListener("click", shareTableByEmail);
 driveBtn.addEventListener("click", shareTableToDrive);
 copyBtn.addEventListener("click", copyTableToClipboard);
 
-// ================= ADD ENTRY =================
+// ================= ADD / UPDATE ENTRY =================
 addBtn.addEventListener("click", async () => {
 
     if (!validateInputs()) return;
 
     try {
-        const response = await fetch(`${BASE_URL}/add-entry`, {
-            method: "POST",
+        const url = editingEntryId
+            ? `${BASE_URL}/update-entry/${editingEntryId}`
+            : `${BASE_URL}/add-entry`;
+        const method = editingEntryId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+            method,
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`
@@ -551,49 +624,77 @@ addBtn.addEventListener("click", async () => {
         const result = await response.json();
 
         if (!response.ok) {
-            alert(result.message || "Error adding entry ❌");
+            showToast(result.message || "Unable to save entry.");
             return;
         }
 
-        loadData();
+        showToast(editingEntryId ? "Entry updated." : "Entry added.");
         clearFields();
+        loadData();
 
     } catch (error) {
         console.log("Fetch Error:", error);
+        showToast("Unable to save entry.");
     }
 });
 
+function startEdit(id) {
+    const item = visibleData.find(entry => Number(entry.id) === Number(id));
+    if (!item) return;
+
+    editingEntryId = id;
+    state.product = item.product;
+    state.quantity = Number(item.quantity);
+    state.price = Number(item.price);
+    calculateTotal();
+    render();
+    addBtn.textContent = "Update";
+    cancelEditBtn.style.display = "block";
+    productInput.focus();
+}
+
+cancelEditBtn.addEventListener("click", clearFields);
+
 // ================= DELETE =================
 async function deleteEntry(id) {
-    if (!confirm("Delete this entry?")) return;
+    const confirmed = await showConfirm("Delete this entry?");
+    if (!confirmed) return;
 
     try {
-        await fetch(`${BASE_URL}/delete-entry/${id}`, {
+        const response = await fetch(`${BASE_URL}/delete-entry/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` }
         });
 
+        if (!response.ok) {
+            showToast("Unable to delete entry.");
+            return;
+        }
+
+        showToast("Entry deleted.");
         loadData();
 
     } catch (error) {
         console.log("Delete Error:", error);
+        showToast("Unable to delete entry.");
     }
 }
 
 // ================= CLEAR =================
 function clearFields() {
+    editingEntryId = null;
     state.product = "";
     state.quantity = 1;
     state.price = 0;
     state.total = 0;
 
+    addBtn.textContent = "Add";
+    cancelEditBtn.style.display = "none";
     render();
     productInput.focus();
 }
 
 // ================= ENTER NAVIGATION =================
-
-// Product → Quantity
 productInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -601,7 +702,6 @@ productInput.addEventListener("keydown", (e) => {
     }
 });
 
-// Quantity → Price
 quantityInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -609,7 +709,6 @@ quantityInput.addEventListener("keydown", (e) => {
     }
 });
 
-// Price → Submit
 priceInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -622,6 +721,7 @@ priceInput.addEventListener("keydown", (e) => {
 // ================= PLUS ICON =================
 if (addIcon) {
     addIcon.addEventListener("click", () => {
+        clearFields();
         productInput.focus();
     });
 }

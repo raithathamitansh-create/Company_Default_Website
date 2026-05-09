@@ -64,7 +64,21 @@
 
 </div>
 
+<div id="authToast" class="auth-toast" role="status" aria-live="polite"></div>
+
+<div id="otpModal" class="otp-overlay" aria-hidden="true">
+    <div class="otp-box" role="dialog" aria-modal="true" aria-labelledby="otpTitle">
+        <h2 id="otpTitle">Verify OTP</h2>
+        <input id="otpInput" placeholder="Enter OTP">
+        <div class="otp-actions">
+            <button id="otpCancelBtn" type="button">Cancel</button>
+            <button id="otpVerifyBtn" type="button">Verify</button>
+        </div>
+    </div>
+</div>
+
 <!-- JS -->
+<script src="config.js"></script>
 <script src="Login.js"></script>
 
 </body>
