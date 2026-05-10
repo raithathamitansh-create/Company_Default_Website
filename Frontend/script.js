@@ -108,6 +108,8 @@ const startTourBtn = document.getElementById("startTourBtn");
 const topCategoryPulse = document.getElementById("topCategoryPulse");
 const restockPulse = document.getElementById("restockPulse");
 const healthPulse = document.getElementById("healthPulse");
+const toggleFiltersBtn = document.getElementById("toggleFiltersBtn");
+const filterPanel = document.getElementById("filterPanel");
 
 
 // ================= FEEDBACK =================
@@ -1250,6 +1252,12 @@ showHistoryBtn.addEventListener("click", async () => {
 closeHistoryBtn.addEventListener("click", () => {
     historyModal.classList.remove("open");
     historyModal.setAttribute("aria-hidden", "true");
+});
+
+// ================= FILTER TOGGLE =================
+toggleFiltersBtn.addEventListener("click", () => {
+    filterPanel.classList.toggle("hidden");
+    toggleFiltersBtn.classList.toggle("active");
 });
 
 // ================= INIT =================
