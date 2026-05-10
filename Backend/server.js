@@ -165,6 +165,27 @@ app.delete("/delete-entry/:id", verifyToken, (req, res) => {
     });
 });
 
+// DELETE MULTIPLE
+app.post("/delete-multiple", verifyToken, (req, res) => {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "No IDs provided" });
+    }
+
+    db.query(
+        "DELETE FROM products WHERE id IN (?) AND user_id = ?",
+        [ids, req.user.id],
+        (err) => {
+            if (err) {
+                console.error("Bulk delete error:", err);
+                return res.status(500).json({ message: "Error deleting entries" });
+            }
+            res.json({ message: "Selected entries deleted" });
+        }
+    );
+});
+
 
 // ======================
 app.get("/", (req, res) => {

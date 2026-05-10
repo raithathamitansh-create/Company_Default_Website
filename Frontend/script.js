@@ -8,6 +8,7 @@ let sortState = {
 let currentPage = 1;
 let rowsPerPage = 5;
 let editingEntryId = null;
+let selectedIds = new Set();
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -75,6 +76,9 @@ const confirmModal = document.getElementById("confirmModal");
 const confirmMessage = document.getElementById("confirmMessage");
 const confirmCancelBtn = document.getElementById("confirmCancelBtn");
 const confirmOkBtn = document.getElementById("confirmOkBtn");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const selectAllCheckbox = document.getElementById("selectAll");
+
 
 // ================= FEEDBACK =================
 function showToast(message) {
@@ -278,7 +282,9 @@ function applyTableView() {
     updateTableSummary();
     updatePagination();
     renderTable();
+    updateDeleteButtonState();
 }
+
 
 function updateDashboard() {
     const totalQuantity = visibleData.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
@@ -372,9 +378,13 @@ function renderTable() {
 
     tableBody.innerHTML = pageData.map((item, index) => {
         const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
+        const isSelected = selectedIds.has(item.id);
 
         return `
-            <tr>
+            <tr class="${isSelected ? "selected-row" : ""}">
+                <td>
+                    <input type="checkbox" class="row-checkbox" data-id="${item.id}" ${isSelected ? "checked" : ""} onclick="toggleSelectRow(${item.id})">
+                </td>
                 <td>${rowNumber}</td>
                 <td>${escapeHtml(String(item.product))}</td>
                 <td>${escapeHtml(String(item.quantity))}</td>
@@ -389,6 +399,73 @@ function renderTable() {
         `;
     }).join("");
 }
+
+function toggleSelectRow(id) {
+    if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+    } else {
+        selectedIds.add(id);
+    }
+    applyTableView();
+}
+
+function updateDeleteButtonState() {
+    deleteSelectedBtn.disabled = selectedIds.size === 0;
+    
+    // Update select all checkbox state
+    if (pageData.length > 0) {
+        const allPageIdsSelected = pageData.every(item => selectedIds.has(item.id));
+        selectAllCheckbox.checked = allPageIdsSelected;
+    } else {
+        selectAllCheckbox.checked = false;
+    }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+    if (selectAllCheckbox.checked) {
+        pageData.forEach(item => selectedIds.add(item.id));
+    } else {
+        pageData.forEach(item => selectedIds.delete(item.id));
+    }
+    applyTableView();
+});
+
+async function deleteSelected() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const confirmed = await showConfirm(`Are you sure you want to delete ${ids.length} selected items?`);
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`${BASE_URL}/delete-multiple`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ ids })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            showToast(result.message || "Unable to delete items.");
+            return;
+        }
+
+        showToast(result.message);
+        selectedIds.clear();
+        loadData();
+
+    } catch (error) {
+        console.log("Bulk Delete Error:", error);
+        showToast("Unable to delete items.");
+    }
+}
+
+deleteSelectedBtn.addEventListener("click", deleteSelected);
+
 
 searchBtn.addEventListener("click", resetPageAndLoad);
 searchInput.addEventListener("input", resetPageAndLoad);

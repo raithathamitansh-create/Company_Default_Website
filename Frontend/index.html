@@ -87,6 +87,7 @@
         <button id="mailBtn" class="action-btn mail-btn">Mail</button>
         <button id="driveBtn" class="action-btn drive-btn">Drive</button>
         <button id="copyBtn" class="action-btn copy-btn">Copy</button>
+        <button id="deleteSelectedBtn" class="action-btn delete-all-btn" disabled>Delete Selected</button>
     </div>
 
     <div class="filter-actions" aria-label="Filter table">
@@ -113,6 +114,7 @@
         <table id="dataTable">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
                     <th>#</th>
                     <th>Product</th>
                     <th>Quantity</th>

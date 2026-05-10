@@ -623,3 +623,31 @@ tbody tr:last-child td {
         white-space: nowrap;
     }
 }
+.delete-all-btn {
+    background: #dc2626;
+    box-shadow: 0 10px 24px rgba(220, 38, 38, 0.18);
+}
+
+.delete-all-btn:hover:not(:disabled) {
+    background: #b91c1c;
+}
+
+.delete-all-btn:disabled {
+    background: #1e293b;
+    color: #64748b;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+tr.selected-row {
+    background: rgba(220, 38, 38, 0.1) !important;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
