@@ -242,6 +242,12 @@ h3 {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
 .chart-card h3 {
     margin-top: 0;
     margin-bottom: 15px;
