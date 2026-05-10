@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -14,7 +15,10 @@
             <p class="eyebrow">Inventory</p>
             <h1>Products</h1>
         </div>
-        <button id="logoutBtn" class="logout-btn">Logout</button>
+        <div class="header-actions">
+            <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle Theme">🌙</button>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
     </div>
 
     <div class="search-box">
@@ -22,11 +26,33 @@
        <button id="searchBtn">Search</button>
     </div>
     
+    <div class="form-group" style="margin-top: 20px;">
+        <label>Currency</label>
+        <select id="currencySelect" class="currency-select">
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+        </select>
+    </div>
+
     <h3>Enter Details</h3>
 
     <div class="form-group">
         <label>Product</label>
         <input id="product" maxlength = "10">
+    </div>
+
+    <div class="form-group">
+        <label>Category</label>
+        <select id="categorySelect" class="category-select">
+            <option value="General">General</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Office">Office</option>
+            <option value="Other">Other</option>
+        </select>
     </div>
 
     <div class="form-group">
@@ -44,6 +70,11 @@
         <input id="total" type="number" readonly>
     </div>
 
+    <div class="form-group">
+        <label>Image URL</label>
+        <input id="imageUrl" placeholder="https://example.com/image.png">
+    </div>
+
     <button id="addBtn">Add</button>
     <button id="cancelEditBtn" class="secondary-btn" type="button">Cancel Edit</button>
 </div>
@@ -58,6 +89,17 @@
         <div>
             <p class="eyebrow">Overview</p>
             <h2>Product Table</h2>
+        </div>
+    </div>
+
+    <div class="analytics-section">
+        <div class="chart-card">
+            <h3>Inventory Value by Category</h3>
+            <canvas id="categoryValueChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Stock Levels</h3>
+            <canvas id="stockLevelChart"></canvas>
         </div>
     </div>
 
@@ -88,6 +130,9 @@
         <button id="driveBtn" class="action-btn drive-btn">Drive</button>
         <button id="copyBtn" class="action-btn copy-btn">Copy</button>
         <button id="deleteSelectedBtn" class="action-btn delete-all-btn" disabled>Delete Selected</button>
+        <button id="importBtn" class="action-btn import-btn">Import CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+        <button id="showHistoryBtn" class="action-btn history-btn">History</button>
     </div>
 
     <div class="filter-actions" aria-label="Filter table">
@@ -117,6 +162,7 @@
                     <th><input type="checkbox" id="selectAll"></th>
                     <th>#</th>
                     <th>Product</th>
+                    <th>Category</th>
                     <th>Quantity</th>
                     <th>Price</th>
                     <th>Total</th>
@@ -153,6 +199,19 @@
         <div class="modal-actions">
             <button id="confirmCancelBtn" class="modal-btn secondary-modal-btn">Cancel</button>
             <button id="confirmOkBtn" class="modal-btn danger-modal-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div id="historyModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box history-modal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+        <h3 id="historyTitle">Activity History</h3>
+        <div id="historyList" class="history-list">
+            <p>Loading history...</p>
+        </div>
+        <div class="modal-actions">
+            <button id="closeHistoryBtn" class="modal-btn secondary-modal-btn">Close</button>
         </div>
     </div>
 </div>

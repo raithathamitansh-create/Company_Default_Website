@@ -9,13 +9,25 @@ let currentPage = 1;
 let rowsPerPage = 5;
 let editingEntryId = null;
 let selectedIds = new Set();
+let categoryChart = null;
+let stockChart = null;
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
     product: "",
     quantity: 1,
     price: 0,
-    total: 0
+    total: 0,
+    category: "General",
+    image_url: "",
+    currency: "INR"
+};
+
+const currencyConfig = {
+    INR: { symbol: "₹", locale: "en-IN" },
+    USD: { symbol: "$", locale: "en-US" },
+    EUR: { symbol: "€", locale: "de-DE" },
+    GBP: { symbol: "£", locale: "en-GB" }
 };
 
 // ================= BASE =================
@@ -39,6 +51,9 @@ const productInput = document.getElementById("product");
 const quantityInput = document.getElementById("quantity");
 const priceInput = document.getElementById("price");
 const totalInput = document.getElementById("total");
+const categorySelect = document.getElementById("categorySelect");
+const imageUrlInput = document.getElementById("imageUrl");
+const currencySelect = document.getElementById("currencySelect");
 const addBtn = document.getElementById("addBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 const tableBody = document.querySelector("#dataTable tbody");
@@ -78,6 +93,13 @@ const confirmCancelBtn = document.getElementById("confirmCancelBtn");
 const confirmOkBtn = document.getElementById("confirmOkBtn");
 const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
 const selectAllCheckbox = document.getElementById("selectAll");
+const themeToggle = document.getElementById("themeToggle");
+const importBtn = document.getElementById("importBtn");
+const csvFileInput = document.getElementById("csvFileInput");
+const showHistoryBtn = document.getElementById("showHistoryBtn");
+const historyModal = document.getElementById("historyModal");
+const historyList = document.getElementById("historyList");
+const closeHistoryBtn = document.getElementById("closeHistoryBtn");
 
 
 // ================= FEEDBACK =================
@@ -118,6 +140,27 @@ function showConfirm(message) {
     });
 }
 
+// ================= THEME =================
+function initTheme() {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function updateThemeIcon(theme) {
+    themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
+}
+
+themeToggle.addEventListener("click", () => {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
+    updateThemeIcon(newTheme);
+    updateCharts(); // Refresh charts to match theme
+});
+
 // ================= LOGOUT =================
 logoutBtn.addEventListener("click", async () => {
     const confirmed = await showConfirm("Are you sure you want to logout?");
@@ -134,6 +177,8 @@ function render() {
     quantityInput.value = state.quantity;
     priceInput.value = state.price;
     totalInput.value = state.total;
+    categorySelect.value = state.category;
+    imageUrlInput.value = state.image_url;
 }
 
 function calculateTotal() {
@@ -155,6 +200,28 @@ priceInput.addEventListener("input", () => {
     calculateTotal();
     render();
 });
+
+categorySelect.addEventListener("change", () => {
+    state.category = categorySelect.value;
+});
+
+imageUrlInput.addEventListener("input", () => {
+    state.image_url = imageUrlInput.value;
+});
+
+currencySelect.addEventListener("change", () => {
+    state.currency = currencySelect.value;
+    applyTableView();
+});
+
+function formatCurrency(amount) {
+    const config = currencyConfig[state.currency];
+    return new Intl.NumberFormat(config.locale, {
+        style: "currency",
+        currency: state.currency,
+        minimumFractionDigits: 0
+    }).format(amount);
+}
 
 // ================= VALIDATION =================
 function validateInputs() {
@@ -283,6 +350,7 @@ function applyTableView() {
     updatePagination();
     renderTable();
     updateDeleteButtonState();
+    updateCharts();
 }
 
 
@@ -296,7 +364,7 @@ function updateDashboard() {
 
     totalProductsStat.textContent = visibleData.length;
     totalQuantityStat.textContent = totalQuantity;
-    totalAmountStat.textContent = totalAmount;
+    totalAmountStat.textContent = formatCurrency(totalAmount);
     highestPriceProductStat.textContent = highestPriceProduct?.product || "-";
 }
 
@@ -343,6 +411,84 @@ function updateSortButtons() {
     if (sortState.key === "price") sortPriceBtn.classList.add("active-sort");
 }
 
+// ================= CHARTS =================
+function updateCharts() {
+    if (!window.Chart) return;
+
+    const ctxCategory = document.getElementById("categoryValueChart");
+    const ctxStock = document.getElementById("stockLevelChart");
+    
+    if (!ctxCategory || !ctxStock) return;
+
+    // Prepare Data for Category Chart
+    const categories = [...new Set(visibleData.map(item => item.category || "General"))];
+    const categoryValues = categories.map(cat => {
+        return visibleData
+            .filter(item => (item.category || "General") === cat)
+            .reduce((sum, item) => sum + Number(item.total), 0);
+    });
+
+    // Prepare Data for Stock Chart
+    const topProducts = [...visibleData]
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 8);
+    const productNames = topProducts.map(item => item.product);
+    const productStocks = topProducts.map(item => item.quantity);
+
+    const theme = document.documentElement.getAttribute("data-theme") || "dark";
+    const textColor = theme === "dark" ? "#94a3b8" : "#64748b";
+    const gridColor = theme === "dark" ? "rgba(148, 163, 184, 0.1)" : "rgba(100, 116, 139, 0.1)";
+
+    // Category Value Chart
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(ctxCategory, {
+        type: "doughnut",
+        data: {
+            labels: categories,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: [
+                    "#38bdf8", "#818cf8", "#fb7185", "#34d399", "#fbbf24", "#a78bfa"
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: "bottom", labels: { color: textColor } }
+            }
+        }
+    });
+
+    // Stock Level Chart
+    if (stockChart) stockChart.destroy();
+    stockChart = new Chart(ctxStock, {
+        type: "bar",
+        data: {
+            labels: productNames,
+            datasets: [{
+                label: "Quantity",
+                data: productStocks,
+                backgroundColor: "#38bdf8",
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { ticks: { color: textColor }, grid: { display: false } },
+                y: { ticks: { color: textColor }, grid: { color: gridColor } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
 function setSort(key) {
     if (sortState.key === key) {
         sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
@@ -379,17 +525,26 @@ function renderTable() {
     tableBody.innerHTML = pageData.map((item, index) => {
         const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
         const isSelected = selectedIds.has(item.id);
+        const quantity = Number(item.quantity);
+        let stockClass = "";
+        if (quantity === 0) stockClass = "critical-stock-row";
+        else if (quantity < 5) stockClass = "low-stock-row";
+
+        const thumbHtml = item.image_url 
+            ? `<img src="${escapeHtml(item.image_url)}" class="product-thumb" alt="">`
+            : "";
 
         return `
-            <tr class="${isSelected ? "selected-row" : ""}">
+            <tr class="${isSelected ? "selected-row" : ""} ${stockClass}">
                 <td>
                     <input type="checkbox" class="row-checkbox" data-id="${item.id}" ${isSelected ? "checked" : ""} onclick="toggleSelectRow(${item.id})">
                 </td>
                 <td>${rowNumber}</td>
-                <td>${escapeHtml(String(item.product))}</td>
+                <td>${thumbHtml}${escapeHtml(String(item.product))}</td>
+                <td>${escapeHtml(String(item.category || "General"))}</td>
                 <td>${escapeHtml(String(item.quantity))}</td>
-                <td>${escapeHtml(String(item.price))}</td>
-                <td>${escapeHtml(String(item.total))}</td>
+                <td>${formatCurrency(item.price)}</td>
+                <td>${formatCurrency(item.total)}</td>
                 <td>${escapeHtml(formatDate(item.created_at))}</td>
                 <td>
                     <span class="edit-btn" onclick="startEdit(${item.id})">Edit</span>
@@ -751,6 +906,8 @@ function startEdit(id) {
 
     editingEntryId = id;
     state.product = item.product;
+    state.category = item.category || "General";
+    state.image_url = item.image_url || "";
     state.quantity = Number(item.quantity);
     state.price = Number(item.price);
     calculateTotal();
@@ -791,6 +948,8 @@ async function deleteEntry(id) {
 function clearFields() {
     editingEntryId = null;
     state.product = "";
+    state.category = "General";
+    state.image_url = "";
     state.quantity = 1;
     state.price = 0;
     state.total = 0;
@@ -833,6 +992,99 @@ if (addIcon) {
     });
 }
 
+// ================= IMPORT =================
+importBtn.addEventListener("click", () => csvFileInput.click());
+
+csvFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const text = event.target.result;
+        const items = parseCsv(text);
+        
+        if (items.length === 0) {
+            showToast("No valid items found in CSV.");
+            return;
+        }
+
+        const confirmed = await showConfirm(`Import ${items.length} items from CSV?`);
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`${BASE_URL}/import-entries`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ items })
+            });
+
+            const result = await res.json();
+            showToast(result.message);
+            loadData();
+        } catch (error) {
+            showToast("Import failed.");
+        }
+    };
+    reader.readAsText(file);
+});
+
+function parseCsv(text) {
+    const lines = text.split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    
+    return lines.slice(1)
+        .filter(line => line.trim())
+        .map(line => {
+            const values = line.split(",").map(v => v.trim());
+            const item = {};
+            headers.forEach((h, i) => {
+                item[h] = values[i];
+            });
+            return item;
+        })
+        .filter(item => item.product); // Must have at least product name
+}
+
+// ================= HISTORY =================
+showHistoryBtn.addEventListener("click", async () => {
+    historyModal.classList.add("open");
+    historyModal.setAttribute("aria-hidden", "false");
+    historyList.innerHTML = "<p>Loading history...</p>";
+
+    try {
+        const res = await fetch(`${BASE_URL}/logs`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const logs = await res.json();
+
+        if (logs.length === 0) {
+            historyList.innerHTML = "<p>No history found.</p>";
+            return;
+        }
+
+        historyList.innerHTML = logs.map(log => `
+            <div class="history-item">
+                <span class="time">${new Date(log.created_at).toLocaleString()}</span>
+                <span class="action">${log.action}</span>
+                <span class="details">${log.details}</span>
+            </div>
+        `).join("");
+
+    } catch (error) {
+        historyList.innerHTML = "<p>Error loading history.</p>";
+    }
+});
+
+closeHistoryBtn.addEventListener("click", () => {
+    historyModal.classList.remove("open");
+    historyModal.setAttribute("aria-hidden", "true");
+});
+
 // ================= INIT =================
+initTheme();
 render();
 loadData();

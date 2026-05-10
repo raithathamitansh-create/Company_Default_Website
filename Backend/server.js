@@ -97,19 +97,44 @@ const authRoutes = require("./routes/authRoutes");
 app.use("/", authRoutes);
 
 // ======================
+// AUDIT LOGS
+// ======================
+function logAction(userId, action, details) {
+    db.query(
+        "INSERT INTO audit_logs (user_id, action, details) VALUES (?, ?, ?)",
+        [userId, action, typeof details === 'string' ? details : JSON.stringify(details)],
+        (err) => {
+            if (err) console.error("Logging failed:", err);
+        }
+    );
+}
+
+app.get("/logs", verifyToken, (req, res) => {
+    db.query(
+        "SELECT * FROM audit_logs WHERE user_id = ? ORDER BY id DESC LIMIT 50",
+        [req.user.id],
+        (err, result) => {
+            if (err) return res.status(500).json({ message: "Error fetching logs" });
+            res.json(result);
+        }
+    );
+});
+
+// ======================
 // PRODUCTS
 // ======================
 
 // ADD
 app.post("/add-entry", verifyToken,validateEntry, (req, res) => {
-    const { product, quantity, price, total } = req.body;
+    const { product, quantity, price, total, category, image_url } = req.body;
     const userId = req.user.id; //comes from JWT
 
     db.query(
-        "INSERT INTO products (user_id, product, quantity, price, total) VALUES (? ,?, ?, ?, ?)",
-        [userId, product, quantity, price, total],
+        "INSERT INTO products (user_id, product, quantity, price, total, category, image_url) VALUES (? ,?, ?, ?, ?, ?, ?)",
+        [userId, product, quantity, price, total, category || 'General', image_url || null],
         (err) => {
             if (err) return res.status(500).json({ message: "Error adding entry" });
+            logAction(userId, "ADD", `Added product: ${product}`);
             res.json({ message: "Added" });
         }
     );
@@ -138,15 +163,16 @@ app.get("/entries", verifyToken, (req, res) => {
 //UPDATE
 app.put("/update-entry/:id", verifyToken, validateEntry, (req,res)=>{
      const id = req.params.id;
-     const {product,quantity,price,total} = req.body;
+     const {product,quantity,price,total,category,image_url} = req.body;
 
      console.log("Updated Hit", req.params.id);
 
      db.query(
-        "UPDATE products SET product=? , quantity=? , price=? , total=? WHERE id=? AND user_id = ?",
-        [product,quantity,price,total,id,req.user.id],
+        "UPDATE products SET product=? , quantity=? , price=? , total=? , category=? , image_url=? WHERE id=? AND user_id = ?",
+        [product,quantity,price,total,category || 'General', image_url || null, id, req.user.id],
         (err)=>{
             if(err) return res.status(500).json({message:"Error updating entry"});
+            logAction(req.user.id, "UPDATE", `Updated product ID: ${id}`);
             res.json({message: "updated successfully"});
         }
      )
@@ -161,6 +187,7 @@ app.delete("/delete-entry/:id", verifyToken, (req, res) => {
         [id,req.user.id], 
         (err) => {
         if (err) return res.status(500).json({ message: "Error deleting" });
+        logAction(req.user.id, "DELETE", `Deleted product ID: ${id}`);
         res.json({ message: "Deleted" });
     });
 });
@@ -181,7 +208,40 @@ app.post("/delete-multiple", verifyToken, (req, res) => {
                 console.error("Bulk delete error:", err);
                 return res.status(500).json({ message: "Error deleting entries" });
             }
+            logAction(req.user.id, "DELETE_MULTIPLE", `Deleted IDs: ${ids.join(', ')}`);
             res.json({ message: "Selected entries deleted" });
+        }
+    );
+});
+
+// BULK IMPORT
+app.post("/import-entries", verifyToken, (req, res) => {
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "No items to import" });
+    }
+
+    const values = items.map(item => [
+        req.user.id,
+        item.product,
+        item.quantity || 0,
+        item.price || 0,
+        (item.quantity || 0) * (item.price || 0),
+        item.category || 'General',
+        item.image_url || null
+    ]);
+
+    db.query(
+        "INSERT INTO products (user_id, product, quantity, price, total, category, image_url) VALUES ?",
+        [values],
+        (err) => {
+            if (err) {
+                console.error("Import error:", err);
+                return res.status(500).json({ message: "Error importing items" });
+            }
+            logAction(req.user.id, "IMPORT", `Imported ${items.length} items`);
+            res.json({ message: `Successfully imported ${items.length} items` });
         }
     );
 });

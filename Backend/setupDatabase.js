@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS products (
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     total DECIMAL(10,2) NOT NULL,
+    category VARCHAR(50) DEFAULT 'General',
+    image_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -34,6 +36,15 @@ CREATE TABLE IF NOT EXISTS otp_codes (
     user_id INT NOT NULL,
     otp VARCHAR(255) NOT NULL,
     expires_at DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 `;
