@@ -11,6 +11,7 @@ let editingEntryId = null;
 let selectedIds = new Set();
 let categoryChart = null;
 let stockChart = null;
+let activeCategory = "All";
 
 // ================= STATE (Single Source of Truth) =================
 const state = {
@@ -100,6 +101,7 @@ const showHistoryBtn = document.getElementById("showHistoryBtn");
 const historyModal = document.getElementById("historyModal");
 const historyList = document.getElementById("historyList");
 const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+const categoryTabsContainer = document.getElementById("categoryTabs");
 
 
 // ================= FEEDBACK =================
@@ -274,6 +276,7 @@ async function loadData() {
         }
 
         allData = Array.isArray(payload) ? payload : [];
+        renderTabs();
         applyTableView();
 
     } catch (error) {
@@ -293,6 +296,10 @@ function getFilteredData() {
     const dateTo = dateToFilter.value;
 
     return allData.filter(item => {
+        // Tab Filter
+        const matchesCategoryTab = activeCategory === "All" || (item.category || "General") === activeCategory;
+        if (!matchesCategoryTab) return false;
+
         const product = String(item.product || "").toLowerCase();
         const quantity = Number(item.quantity || 0);
         const price = Number(item.price || 0);
@@ -489,6 +496,25 @@ function updateCharts() {
         }
     });
 }
+
+function renderTabs() {
+    if (!categoryTabsContainer) return;
+
+    const categories = ["All", ...new Set(allData.map(item => item.category || "General"))];
+    
+    categoryTabsContainer.innerHTML = categories.map(cat => `
+        <button class="tab-btn ${activeCategory === cat ? 'active' : ''}" onclick="setCategoryTab('${cat}')">
+            ${cat}
+        </button>
+    `).join("");
+}
+
+window.setCategoryTab = (cat) => {
+    activeCategory = cat;
+    currentPage = 1;
+    renderTabs();
+    applyTableView();
+};
 
 function setSort(key) {
     if (sortState.key === key) {
