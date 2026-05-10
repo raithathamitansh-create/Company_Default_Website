@@ -756,6 +756,84 @@ if (addIcon) {
     });
 }
 
+
 // ================= INIT =================
 render();
 loadData();
+
+// ================= CHATBOT LOGIC =================
+const chatbotToggleBtn = document.getElementById("chatbotToggleBtn");
+const chatbotWindow = document.getElementById("chatbotWindow") || document.getElementById("chatbot-window");
+const closeChatBtn = document.getElementById("closeChatBtn");
+const chatbotMessages = document.getElementById("chatbot-messages");
+const chatbotInput = document.getElementById("chatbotInput");
+const sendChatBtn = document.getElementById("sendChatBtn");
+const suggestionBtns = document.querySelectorAll(".suggestion-btn");
+
+const responses = {
+    add: "To add a product, use the form in the <b>Enter Details</b> sidebar. Fill in the Product name, Quantity, and Price, then click <b>Add</b>. You can also use the <b>+</b> icon in the top right to clear the form and start fresh.",
+    export: "You can export your inventory data to Excel or CSV using the <b>Export Excel</b> button above the table. Other sharing options like WhatsApp, Mail, and Google Drive are also available.",
+    filter: "Use the filter inputs above the table to narrow down your inventory by <b>Price</b>, <b>Quantity</b>, or <b>Date Range</b>. The table and statistics will update automatically as you type.",
+    sort: "Click the sort buttons above the table to organize your products by <b>Name (A-Z)</b>, <b>Quantity</b>, or <b>Price</b>. Clicking the same button again will reverse the sort order.",
+    default: "I'm here to help! You can ask about adding products, exporting data, filtering, or sorting. Or just click one of the suggestions below."
+};
+
+function toggleChat() {
+    const isOpen = chatbotWindow.classList.toggle("open");
+    chatbotWindow.setAttribute("aria-hidden", !isOpen);
+}
+
+function addMessage(text, isAssistant = true) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${isAssistant ? "assistant" : "user"}`;
+    msgDiv.innerHTML = text;
+    chatbotMessages.appendChild(msgDiv);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+}
+
+function handleBotResponse(question) {
+    // Show typing indicator (simple version)
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "message assistant typing";
+    typingDiv.textContent = "...";
+    chatbotMessages.appendChild(typingDiv);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+
+    setTimeout(() => {
+        typingDiv.remove();
+        const response = responses[question] || responses.default;
+        addMessage(response);
+    }, 800);
+}
+
+chatbotToggleBtn.addEventListener("click", toggleChat);
+closeChatBtn.addEventListener("click", toggleChat);
+
+sendChatBtn.addEventListener("click", () => {
+    const text = chatbotInput.value.trim().toLowerCase();
+    if (!text) return;
+
+    addMessage(chatbotInput.value, false);
+    chatbotInput.value = "";
+
+    let matched = "default";
+    if (text.includes("add")) matched = "add";
+    else if (text.includes("export") || text.includes("excel") || text.includes("share")) matched = "export";
+    else if (text.includes("filter") || text.includes("search")) matched = "filter";
+    else if (text.includes("sort")) matched = "sort";
+
+    handleBotResponse(matched);
+});
+
+chatbotInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendChatBtn.click();
+});
+
+suggestionBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const question = btn.getAttribute("data-question");
+        addMessage(btn.textContent, false);
+        handleBotResponse(question);
+    });
+});
+
