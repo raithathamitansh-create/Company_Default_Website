@@ -428,12 +428,13 @@ function updateCharts() {
             .reduce((sum, item) => sum + Number(item.total), 0);
     });
 
-    // Prepare Data for Stock Chart
-    const topProducts = [...visibleData]
-        .sort((a, b) => b.quantity - a.quantity)
-        .slice(0, 8);
-    const productNames = topProducts.map(item => item.product);
-    const productStocks = topProducts.map(item => item.quantity);
+    // Prepare Data for Stock Chart (Grouped by Category)
+    const categoriesStock = [...new Set(visibleData.map(item => item.category || "General"))];
+    const categoryStockQuantities = categoriesStock.map(cat => {
+        return visibleData
+            .filter(item => (item.category || "General") === cat)
+            .reduce((sum, item) => sum + Number(item.quantity), 0);
+    });
 
     const theme = document.documentElement.getAttribute("data-theme") || "dark";
     const textColor = theme === "dark" ? "#94a3b8" : "#64748b";
@@ -462,15 +463,15 @@ function updateCharts() {
         }
     });
 
-    // Stock Level Chart
+    // Stock Level Chart (Now by Category)
     if (stockChart) stockChart.destroy();
     stockChart = new Chart(ctxStock, {
         type: "bar",
         data: {
-            labels: productNames,
+            labels: categoriesStock,
             datasets: [{
-                label: "Quantity",
-                data: productStocks,
+                label: "Total Quantity",
+                data: categoryStockQuantities,
                 backgroundColor: "#38bdf8",
                 borderRadius: 4
             }]
