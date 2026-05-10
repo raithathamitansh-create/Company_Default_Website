@@ -818,3 +818,95 @@ input[type="checkbox"] {
     color: #ffffff;
     box-shadow: 0 4px 12px rgba(56, 189, 248, 0.24);
 }
+
+/* ================= PULSE CARDS ================= */
+.pulse-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 24px;
+    max-width: 980px;
+}
+
+.pulse-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.pulse-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.pulse-card .value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.pulse-card .value.critical {
+    color: #f87171;
+}
+
+/* ================= VOICE SEARCH ================= */
+.voice-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0 12px;
+    margin-right: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s;
+}
+
+.voice-btn:hover {
+    background: rgba(148, 163, 184, 0.1);
+    transform: scale(1.1);
+}
+
+.voice-btn.recording {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    animation: pulse-red 1.5s infinite;
+}
+
+/* ================= DANGER ZONE ================= */
+.danger-zone {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.delete-account-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.delete-account-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.tour-btn {
+    background: #10b981;
+}
+
+.tour-btn:hover {
+    background: #059669;
+}

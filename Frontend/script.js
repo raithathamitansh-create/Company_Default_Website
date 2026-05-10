@@ -102,6 +102,12 @@ const historyModal = document.getElementById("historyModal");
 const historyList = document.getElementById("historyList");
 const closeHistoryBtn = document.getElementById("closeHistoryBtn");
 const categoryTabsContainer = document.getElementById("categoryTabs");
+const voiceBtn = document.getElementById("voiceBtn");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+const startTourBtn = document.getElementById("startTourBtn");
+const topCategoryPulse = document.getElementById("topCategoryPulse");
+const restockPulse = document.getElementById("restockPulse");
+const healthPulse = document.getElementById("healthPulse");
 
 
 // ================= FEEDBACK =================
@@ -358,6 +364,7 @@ function applyTableView() {
     renderTable();
     updateDeleteButtonState();
     updateCharts();
+    updatePulseCards();
 }
 
 
@@ -496,6 +503,140 @@ function updateCharts() {
         }
     });
 }
+
+// ================= PULSE CARDS =================
+function updatePulseCards() {
+    if (allData.length === 0) {
+        topCategoryPulse.textContent = "-";
+        restockPulse.textContent = "0";
+        healthPulse.textContent = "100%";
+        return;
+    }
+
+    // Top Category
+    const categoryCounts = {};
+    allData.forEach(item => {
+        const cat = item.category || "General";
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+    const topCat = Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b);
+    topCategoryPulse.textContent = topCat;
+
+    // Restock Needed
+    const lowStockCount = allData.filter(item => Number(item.quantity) < 5).length;
+    restockPulse.textContent = lowStockCount;
+    restockPulse.className = lowStockCount > 0 ? "value critical" : "value";
+
+    // Health
+    const healthyCount = allData.filter(item => Number(item.quantity) >= 5).length;
+    const healthPerc = Math.round((healthyCount / allData.length) * 100);
+    healthPulse.textContent = `${healthPerc}%`;
+}
+
+// ================= VOICE SEARCH =================
+function startVoiceSearch() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        showToast("Voice recognition not supported in this browser.");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        voiceBtn.classList.add("recording");
+        showToast("Listening...");
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        searchInput.value = transcript;
+        showToast(`Searching for: ${transcript}`);
+        resetPageAndLoad();
+    };
+
+    recognition.onerror = () => {
+        showToast("Voice search failed.");
+        voiceBtn.classList.remove("recording");
+    };
+
+    recognition.onend = () => {
+        voiceBtn.classList.remove("recording");
+    };
+
+    recognition.start();
+}
+
+voiceBtn.addEventListener("click", startVoiceSearch);
+
+// ================= TOUR =================
+function startTour() {
+    introJs().setOptions({
+        steps: [
+            {
+                title: 'Welcome!',
+                intro: 'Welcome to your Advanced Inventory System. Let me show you around! 👋'
+            },
+            {
+                element: document.querySelector('.sidebar'),
+                intro: 'Use this sidebar to add products, search, and manage your account.',
+                position: 'right'
+            },
+            {
+                element: document.querySelector('.pulse-cards'),
+                intro: 'These cards give you an instant health check of your stock levels.',
+                position: 'bottom'
+            },
+            {
+                element: document.querySelector('.category-tabs'),
+                intro: 'Switch between these tabs to organize your products by category.',
+                position: 'bottom'
+            },
+            {
+                element: document.querySelector('.analytics-section'),
+                intro: 'Keep an eye on these charts for deep insights into your inventory value.',
+                position: 'top'
+            }
+        ],
+        showProgress: true,
+        showBullets: false
+    }).start();
+}
+
+startTourBtn.addEventListener("click", startTour);
+
+// ================= DELETE ACCOUNT =================
+async function deleteAccount() {
+    const confirmed = await showConfirm("⚠️ WARNING: This will permanently delete your account and ALL your data. This action cannot be undone! Are you absolutely sure?");
+    if (!confirmed) return;
+
+    const finalConfirm = await showConfirm("REALLY SURE? This is your last chance.");
+    if (!finalConfirm) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/delete-account`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+            showToast("Account deleted successfully. Goodbye!");
+            localStorage.clear();
+            setTimeout(() => {
+                window.location.href = "login.html";
+            }, 2000);
+        } else {
+            showToast(result.message || "Failed to delete account.");
+        }
+    } catch (error) {
+        showToast("Error deleting account.");
+    }
+}
+
+deleteAccountBtn.addEventListener("click", deleteAccount);
 
 function renderTabs() {
     if (!categoryTabsContainer) return;

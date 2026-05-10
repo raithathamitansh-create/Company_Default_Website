@@ -5,6 +5,8 @@
     <title>Product System</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js/minified/introjs.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/intro.js/minified/intro.min.js"></script>
 </head>
 <body>
 
@@ -23,6 +25,7 @@
 
     <div class="search-box">
        <input id="searchInput" placeholder="Search product..." />
+       <button id="voiceBtn" class="voice-btn" title="Voice Search">🎤</button>
        <button id="searchBtn">Search</button>
     </div>
     
@@ -75,8 +78,12 @@
         <input id="imageUrl" placeholder="https://example.com/image.png">
     </div>
 
-    <button id="addBtn">Add</button>
+    <button id="addBtn" data-intro="Click here to add your product to the inventory!">Add</button>
     <button id="cancelEditBtn" class="secondary-btn" type="button">Cancel Edit</button>
+
+    <div class="danger-zone">
+        <button id="deleteAccountBtn" class="delete-account-btn">Delete Account</button>
+    </div>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -85,9 +92,24 @@
     <!-- PLUS ICON -->
     <div class="add-icon" id="addIcon">+</div>
 
-    <div id="categoryTabs" class="category-tabs" aria-label="Category filter"></div>
+    <div id="categoryTabs" class="category-tabs" aria-label="Category filter" data-intro="Filter your view by specific categories here."></div>
 
-    <div class="main-header">
+    <div class="pulse-cards" id="pulseCards" data-intro="Your quick inventory health overview.">
+        <div class="pulse-card">
+            <span class="label">Top Category</span>
+            <span class="value" id="topCategoryPulse">-</span>
+        </div>
+        <div class="pulse-card">
+            <span class="label">Restock Needed</span>
+            <span class="value critical" id="restockPulse">0</span>
+        </div>
+        <div class="pulse-card">
+            <span class="label">In Stock Health</span>
+            <span class="value" id="healthPulse">100%</span>
+        </div>
+    </div>
+
+    <div class="main-header" data-intro="This is your main dashboard area.">
         <div>
             <p class="eyebrow">Overview</p>
             <h2>Product Table</h2>
@@ -136,9 +158,10 @@
         <button id="driveBtn" class="action-btn drive-btn">Drive</button>
         <button id="copyBtn" class="action-btn copy-btn">Copy</button>
         <button id="deleteSelectedBtn" class="action-btn delete-all-btn" disabled>Delete Selected</button>
-        <button id="importBtn" class="action-btn import-btn">Import CSV</button>
+        <button id="importBtn" class="action-btn import-btn" data-intro="Bulk upload items using a CSV file.">Import CSV</button>
         <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
         <button id="showHistoryBtn" class="action-btn history-btn">History</button>
+        <button id="startTourBtn" class="action-btn tour-btn">Take a Tour</button>
     </div>
 
     <div class="filter-actions" aria-label="Filter table">

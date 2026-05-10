@@ -214,6 +214,19 @@ app.post("/delete-multiple", verifyToken, (req, res) => {
     );
 });
 
+// DELETE ACCOUNT
+app.delete("/delete-account", verifyToken, (req, res) => {
+    const userId = req.user.id;
+
+    db.query("DELETE FROM users WHERE id = ?", [userId], (err) => {
+        if (err) {
+            console.error("Account delete error:", err);
+            return res.status(500).json({ message: "Error deleting account" });
+        }
+        res.json({ message: "Account and all data deleted successfully" });
+    });
+});
+
 // BULK IMPORT
 app.post("/import-entries", verifyToken, (req, res) => {
     const { items } = req.body;
