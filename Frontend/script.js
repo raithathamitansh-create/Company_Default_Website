@@ -241,13 +241,7 @@ function validateInputs() {
         return false;
     }
 
-    if (state.product.length > 50) {
-        showToast("Product must not exceed 50 characters.");
-        productInput.focus();
-        return false;
-    }
-
-    if (!Number.isInteger(state.quantity) || state.quantity < 1 || state.quantity > 50) {
+    if (!Number.isInteger(state.quantity) || state.quantity < 1 || state.quantity > 1000) {
         showToast("Quantity must be between 1 and 1000.");
         quantityInput.focus();
         return false;

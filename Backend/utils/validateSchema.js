@@ -6,10 +6,6 @@ function validateEntrySchema(data) {
         errors.push("Product must be a non-empty string");
     }
 
-    if (data.product.length > 10) {
-        errors.push("Product must not exceed 10 characters");
-    }
-
     // CONVERT VALUES
     const quantity = Number(data.quantity);
     const price = Number(data.price);
@@ -20,8 +16,8 @@ function validateEntrySchema(data) {
         errors.push("Quantity must be an integer");
     }
 
-    if (quantity < 1 || quantity > 50) {
-        errors.push("Quantity must be between 1 and 50");
+    if (quantity < 1 || quantity > 1000) {
+        errors.push("Quantity must be between 1 and 1000");
     }
 
     // PRICE

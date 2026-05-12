@@ -4,7 +4,7 @@ const entrySchema = {
         product: {
             type: "string",
             minLength: 1,
-            maxLength: 50
+            maxLength: 255
         },
         quantity: {
             type: "integer",
