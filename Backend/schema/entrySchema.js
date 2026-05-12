@@ -4,12 +4,12 @@ const entrySchema = {
         product: {
             type: "string",
             minLength: 1,
-            maxLength: 10
+            maxLength: 50
         },
         quantity: {
             type: "integer",
             minimum: 1,
-            maximum: 50
+            maximum: 1000
         },
         price: {
             type: "number",

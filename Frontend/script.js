@@ -164,7 +164,7 @@ function updateThemeIcon(theme) {
 themeToggle.addEventListener("click", () => {
     const currentTheme = document.documentElement.getAttribute("data-theme");
     const newTheme = currentTheme === "dark" ? "light" : "dark";
-    
+
     document.documentElement.setAttribute("data-theme", newTheme);
     localStorage.setItem("theme", newTheme);
     updateThemeIcon(newTheme);
@@ -241,14 +241,14 @@ function validateInputs() {
         return false;
     }
 
-    if (state.product.length > 10) {
-        showToast("Product must not exceed 10 characters.");
+    if (state.product.length > 50) {
+        showToast("Product must not exceed 50 characters.");
         productInput.focus();
         return false;
     }
 
     if (!Number.isInteger(state.quantity) || state.quantity < 1 || state.quantity > 50) {
-        showToast("Quantity must be between 1 and 50.");
+        showToast("Quantity must be between 1 and 1000.");
         quantityInput.focus();
         return false;
     }
@@ -433,7 +433,7 @@ function updateCharts() {
 
     const ctxCategory = document.getElementById("categoryValueChart");
     const ctxStock = document.getElementById("stockLevelChart");
-    
+
     if (!ctxCategory || !ctxStock) return;
 
     // Prepare Data for Category Chart
@@ -644,7 +644,7 @@ function renderTabs() {
     if (!categoryTabsContainer) return;
 
     const categories = ["All", ...new Set(allData.map(item => item.category || "General"))];
-    
+
     categoryTabsContainer.innerHTML = categories.map(cat => `
         <button class="tab-btn ${activeCategory === cat ? 'active' : ''}" onclick="setCategoryTab('${cat}')">
             ${cat}
@@ -700,7 +700,7 @@ function renderTable() {
         if (quantity === 0) stockClass = "critical-stock-row";
         else if (quantity < 5) stockClass = "low-stock-row";
 
-        const thumbHtml = item.image_url 
+        const thumbHtml = item.image_url
             ? `<img src="${escapeHtml(item.image_url)}" class="product-thumb" alt="">`
             : "";
 
@@ -736,7 +736,7 @@ function toggleSelectRow(id) {
 
 function updateDeleteButtonState() {
     deleteSelectedBtn.disabled = selectedIds.size === 0;
-    
+
     // Update select all checkbox state
     if (pageData.length > 0) {
         const allPageIdsSelected = pageData.every(item => selectedIds.has(item.id));
@@ -1173,7 +1173,7 @@ csvFileInput.addEventListener("change", (e) => {
     reader.onload = async (event) => {
         const text = event.target.result;
         const items = parseCsv(text);
-        
+
         if (items.length === 0) {
             showToast("No valid items found in CSV.");
             return;
@@ -1205,7 +1205,7 @@ csvFileInput.addEventListener("change", (e) => {
 function parseCsv(text) {
     const lines = text.split("\n");
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-    
+
     return lines.slice(1)
         .filter(line => line.trim())
         .map(line => {
